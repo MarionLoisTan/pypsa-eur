@@ -195,7 +195,7 @@ if CUTOUT_DATASET["source"] in ["build"]:
         params:
             cutouts=config_provider("atlite", "cutouts"),
         output:
-            cutout=CUTOUT_DATASET["folder"] / "{cutout}.nc",
+            cutout=CUTOUT_DATASET["folder"] +"/{cutout}.nc",
         log:
             "logs/build_cutout/{cutout}.log",
         benchmark:

@@ -68,3 +68,36 @@ rule solve_operations_network:
         shadow_config
     script:
         "../scripts/solve_operations_network.py"
+
+rule solve_operations_network_damaged_elec:
+    message:
+        "Solving damaged dispatch for {wildcards.clusters} clusters and {wildcards.opts} options"
+    wildcard_constraints:
+        opts=r"[^_]*",  # opts cannot contain underscores before _damaged
+    params:
+        options=config_provider("solving", "options"),
+        solving=config_provider("solving"),
+        foresight=config_provider("foresight"),
+        co2_sequestration_potential=config_provider(
+            "sector", "co2_sequestration_potential", default=200
+        ),
+        planning_horizons=None,
+        custom_extra_functionality=input_custom_extra_functionality,
+    input:
+        network=RESULTS + "networks/base_s_{clusters}_elec_{opts}.nc",
+        damaged_profile=ancient(resources("damage_profiles/profile_{clusters}_onwind_damaged.nc"))
+    output:
+        network=RESULTS + "networks/base_s_{clusters}_elec_{opts}_damaged-dispatch.nc",
+    log:
+        solver=normpath(RESULTS + "logs/solve_operations_network_damaged/base_s_{clusters}_elec_{opts}_damaged-dispatch_solver.log"),
+        python=RESULTS + "logs/solve_operations_network_damaged/base_s_{clusters}_elec_{opts}_damaged-dispatch_python.log",
+    benchmark:
+        RESULTS + "benchmarks/solve_operations_network_damaged/base_s_{clusters}_elec_{opts}_damaged-dispatch"
+    threads: 4
+    resources:
+        mem_mb=memory,
+        runtime=config_provider("solving", "runtime", default="6h"),
+    shadow:
+        shadow_config
+    script:
+        "../scripts/solve_operations_network_damaged.py"
