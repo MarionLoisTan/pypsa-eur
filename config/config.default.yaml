@@ -205,6 +205,17 @@ atlite:
         monthly_requests: true
         tmpdir: ./cutouts_tmp/
 
+# docs in https://pypsa-eur.readthedocs.io/en/latest/configuration.html#water
+water:
+  # Resolution in metres for the CORINE exclusion raster (matches onshore availability matrix)
+  excluder_resolution: 100
+  # CORINE sequential raster codes for inland water bodies.
+  # 35 = Water courses (CLC 511: rivers, canals)
+  # 36 = Water bodies  (CLC 512: lakes, reservoirs)
+  codes:
+  - 35
+  - 36
+
 # docs in https://pypsa-eur.readthedocs.io/en/latest/configuration.html#renewable
 renewable:
   onwind:

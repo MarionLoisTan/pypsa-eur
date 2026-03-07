@@ -116,6 +116,7 @@ def get_run_path(fn, dir, rdir, shared_resources, exclude_from_shared):
             "regions_by_class_{clusters}",
             "availability_matrix_",
             "determine_availability_matrix_",
+            "water_cover_matrix_",
             "solar_thermal",
         )
         if any(prefix in fn for prefix in shared_files) or is_shared:

@@ -333,6 +333,29 @@ rule determine_availability_matrix:
         "../scripts/determine_availability_matrix.py"
 
 
+rule build_water_cover_matrix:
+    message:
+        "Building inland water cover matrix for {wildcards.clusters} clusters"
+    params:
+        excluder_resolution=config_provider("water", "excluder_resolution", default=100),
+        water_codes=config_provider("water", "codes", default=[35, 36]),
+    input:
+        corine=ancient(rules.retrieve_corine.output["tif_file"]),
+        regions=resources("regions_onshore_base_s_{clusters}.geojson"),
+        cutout=lambda w: input_cutout(w),
+    output:
+        resources("water_cover_matrix_{clusters}.nc"),
+    log:
+        logs("build_water_cover_matrix_{clusters}.log"),
+    benchmark:
+        benchmarks("build_water_cover_matrix_{clusters}")
+    threads: config["atlite"].get("nprocesses", 4)
+    resources:
+        mem_mb=config["atlite"].get("nprocesses", 4) * 5000,
+    script:
+        "../scripts/build_water_cover_matrix.py"
+
+
 rule build_renewable_profiles:
     message:
         "Building renewable profiles for {wildcards.clusters} clusters and {wildcards.technology} technology"
