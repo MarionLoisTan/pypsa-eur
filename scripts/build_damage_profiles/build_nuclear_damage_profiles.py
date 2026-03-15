@@ -40,7 +40,7 @@ import yaml
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-SWT = 32 + 273  # K — steam/water temperature threshold
+SWT = 30 + 273  # K — shutdown water temperature threshold
 DWT = 20 + 273  # K — design water temperature
 SP = 24         # hours — shutdown propagation window
 
@@ -152,7 +152,7 @@ def load_nuclear_plants(powerplants_csv: Path, dateout_cutoff: int = 2023) -> pd
     """Return nuclear plants with DateOut > cutoff (still operating)."""
     df = pd.read_csv(powerplants_csv, index_col=0)
     mask = (df["Fueltype"] == "Nuclear") & (df["DateOut"] > dateout_cutoff)
-    return df.loc[mask, ["Name", "lat", "lon", "Capacity"]].copy()
+    return df.loc[mask, ["Name", "lat", "lon", "Capacity", "bus"]].copy()
 
 
 # ---------------------------------------------------------------------------
