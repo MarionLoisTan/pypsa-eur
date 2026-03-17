@@ -37,13 +37,6 @@ import numpy as np
 import pandas as pd
 import yaml
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-SWT = 30 + 273  # K — shutdown water temperature threshold
-DWT = 20 + 273  # K — design water temperature
-SP = 24         # hours — shutdown propagation window
-
 _SCRIPT_DIR = Path(__file__).parent
 _PYPSA_ROOT = _SCRIPT_DIR.parent.parent
 
@@ -63,6 +56,15 @@ def get_vulnerability(degrees_above_dwt: float) -> float:
     """Map degrees above DWT to fraction-inoperable vulnerability (0–1)."""
     threshold = min(17, max(0, round(degrees_above_dwt)))
     return VULNERABILITY[threshold]
+
+
+# ---------------------------------------------------------------------------
+# Damage config helpers
+# ---------------------------------------------------------------------------
+def load_damage_config() -> dict:
+    """Load damage_config.yaml from the same directory as this script."""
+    with open(_SCRIPT_DIR / "damage_config.yaml") as f:
+        return yaml.safe_load(f)
 
 
 # ---------------------------------------------------------------------------
@@ -134,6 +136,13 @@ def get_output_path(config: dict, scenario_name: str) -> Path:
     return _PYPSA_ROOT / "resources" / rdir / "nuclear_damage.csv"
 
 
+def get_bus_profile_output_path(config: dict, scenario_name: str) -> Path:
+    """Return resources/{RDIR}/profile_{clusters}_nuclear.csv."""
+    rdir = _get_rdir(config, scenario_name)
+    clusters = config["scenario"]["clusters"][0]
+    return _PYPSA_ROOT / "resources" / rdir / f"profile_{clusters}_nuclear.csv"
+
+
 def get_snapshot_index(config: dict, scenario_cfg: dict) -> pd.DatetimeIndex:
     """Return hourly DatetimeIndex for the scenario (falls back to main config)."""
     snap = scenario_cfg.get("snapshots", config["snapshots"])
@@ -177,9 +186,9 @@ def extract_lake_temp(cutout_data, lat: float, lon: float, time_index: pd.Dateti
 # ---------------------------------------------------------------------------
 def compute_damage_profile(
     lake_temp_series: np.ndarray,
-    swt: float = SWT,
-    dwt: float = DWT,
-    sp: int = SP,
+    swt: float,
+    dwt: float,
+    sp: int,
 ) -> np.ndarray:
     """
     Compute hourly damage profile for a single plant.
@@ -226,6 +235,11 @@ def build_nuclear_damage_profiles(config_path: str | Path):
     """
     config, scenarios = load_configs(config_path)
 
+    dmg_cfg = load_damage_config()["nuclear"]
+    swt = dmg_cfg["SWT"]
+    dwt = dmg_cfg["DWT"]
+    sp = dmg_cfg["SP"]
+
     # Filter to scenarios that request nuclear damage profiles
     damage_scenarios = {
         name: scen_cfg
@@ -267,7 +281,7 @@ def build_nuclear_damage_profiles(config_path: str | Path):
         profiles = {}
         for _, plant in nuclear.iterrows():
             lake_temp = extract_lake_temp(cutout_data, plant["lat"], plant["lon"], snapshot_index)
-            profiles[plant["Name"]] = compute_damage_profile(lake_temp)
+            profiles[plant["Name"]] = compute_damage_profile(lake_temp, swt=swt, dwt=dwt, sp=sp)
 
         df_out = pd.DataFrame(profiles, index=snapshot_index)
 
@@ -280,6 +294,57 @@ def build_nuclear_damage_profiles(config_path: str | Path):
     return results
 
 
+# ---------------------------------------------------------------------------
+# Bus-level aggregation
+# ---------------------------------------------------------------------------
+def build_bus_damage_profiles(results: dict, config: dict, scenarios: dict) -> dict:
+    """
+    Aggregate per-plant damage profiles to bus level using capacity-weighted averaging.
+
+    For each bus, the profile is the capacity-weighted mean of all nuclear plants
+    connected to that bus.
+
+    Parameters
+    ----------
+    results   : {scenario_name: damage_df} as returned by build_nuclear_damage_profiles
+    config    : main config dict (from load_configs)
+    scenarios : scenarios dict (from load_configs)
+
+    Output
+    ------
+    One CSV per scenario, saved to:
+      resources/{RDIR}/profile_{clusters}_nuclear.csv
+      - index   : hourly timestamps
+      - columns : one per bus that has at least one nuclear plant
+    """
+    bus_results = {}
+
+    for scenario_name, damage_df in results.items():
+        powerplants_csv = get_powerplants_path(config, scenario_name)
+        if not powerplants_csv.exists():
+            print(f"  WARNING: powerplants CSV not found at {powerplants_csv}, skipping.")
+            continue
+
+        nuclear = load_nuclear_plants(powerplants_csv)
+
+        bus_profiles = {}
+        for bus in nuclear["bus"].unique():
+            plants_at_bus = nuclear[nuclear["bus"] == bus].set_index("Name")
+            common = plants_at_bus.index.intersection(damage_df.columns)
+            weights = plants_at_bus.loc[common, "Capacity"]
+            bus_profiles[bus] = damage_df[common].dot(weights) / weights.sum()
+
+        df_out = pd.DataFrame(bus_profiles, index=damage_df.index)
+
+        out_path = get_bus_profile_output_path(config, scenario_name)
+        df_out.to_csv(out_path)
+        print(f"  Saved bus profiles: {out_path}")
+
+        bus_results[scenario_name] = df_out
+
+    return bus_results
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -287,4 +352,6 @@ if __name__ == "__main__":
     parser.add_argument("config_path", help="Path to config.yaml")
     args = parser.parse_args()
 
-    build_nuclear_damage_profiles(config_path=args.config_path)
+    config, scenarios = load_configs(args.config_path)
+    results = build_nuclear_damage_profiles(config_path=args.config_path)
+    build_bus_damage_profiles(results, config, scenarios)

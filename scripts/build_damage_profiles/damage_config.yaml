@@ -1,3 +1,5 @@
+# Atlite
+
 cutout_dir: cutouts  # absolute, ~/..., or relative to pypsa-eur root
 
 cutout_names:                           # optional: omit to process ALL .nc files in cutout_dir
@@ -7,3 +9,10 @@ cutout_names:                           # optional: omit to process ALL .nc file
 features:
   - wind_gust
   - lake_s_temperature
+
+# Damage
+
+nuclear:
+  SWT: 303  # K — shutdown water temperature threshold (30°C + 273)
+  DWT: 293  # K — design water temperature (20°C + 273)
+  SP: 24    # hours — shutdown propagation window

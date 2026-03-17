@@ -3,89 +3,58 @@ Interactive Plotly plot functions for nuclear damage profiles.
 
 Public API
 ----------
-plot_plant_profile(plant_name, damage_df, cutout_data, powerplants_df)
+plot_plant_profile(plant_name, damage_df, cutout_data, powerplants_df,
+                   width=1100, height=420)
     Dual y-axis interactive plot for a single nuclear plant.
     Left axis : damage profile [0, 1]
     Right axis: lake surface temperature (°C) with DWT / SWT threshold lines
 
-plot_bus_profile(bus_name, damage_df, cutout_data, powerplants_df, mode='individual')
+plot_bus_profile(bus_name, damage_df, cutout_data, powerplants_df,
+                 mode='individual', width=1100, height=420)
     Same layout for all nuclear plants at a given bus.
-    mode='individual' : one line per plant (uniform linewidth)
-    mode='aggregate'  : capacity-weighted mean damage line
-    Right axis        : min/max temperature band across plants
+    mode='individual' : one legend-togglable line per plant
+    mode='aggregate'  : single capacity-weighted mean line
+    Right axis        : min/max temperature band across all bus plants
 
 plot_vulnerability_table()
     Bar chart of the water-temperature vulnerability lookup table
-    (fraction inoperable vs. °C above DWT).
+    (fraction inoperable vs. °C above DWT), with DWT / SWT subtitle.
 
 All functions return a plotly.graph_objects.Figure.
 """
 
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
-from .build_nuclear_damage_profiles import (
-    DWT,
-    SWT,
+from ._plotting import (
+    _DWT,
+    _SWT,
     _SCRIPT_DIR,
-    extract_lake_temp,
+    _DAMAGE_COLORS,
+    _DAMAGE_SINGLE_COLOR,
+    _TEMP_LINE_COLOR,
+    _TEMP_BAND_FILL_RGBA,
+    _DWT_COLOR,
+    _SWT_COLOR,
+    _DWT_C,
+    _SWT_C,
+    _get_plant_row,
+    _plant_temp_c,
+    _compute_day_ticks,
 )
 
-# ---------------------------------------------------------------------------
-# Colour constants
-# ---------------------------------------------------------------------------
-# Damage traces  — cool qualitative palette (blues / greens / purples)
-_DAMAGE_COLORS = [
-    "#1f77b4",  # muted blue
-    "#2ca02c",  # cooked asparagus green
-    "#9467bd",  # muted purple
-    "#17becf",  # blue-teal
-    "#8c564b",  # chestnut brown
-    "#e377c2",  # raspberry yogurt pink
-    "#bcbd22",  # curry yellow-green
-    "#7f7f7f",  # middle gray
-]
-_DAMAGE_SINGLE_COLOR = "#1f77b4"  # single-plant / aggregate line
-
-# Temperature traces — warm palette
-_TEMP_LINE_COLOR = "darkorange"
-_TEMP_BAND_FILL = "rgba(255, 160, 50, 0.20)"
-_TEMP_BAND_LINE = "rgba(0,0,0,0)"  # invisible band boundary line
-
-# Threshold lines on the temperature axis
-_DWT_COLOR = "mediumseagreen"
-_SWT_COLOR = "crimson"
-
-# Display thresholds in °C
-_DWT_C = DWT - 273
-_SWT_C = SWT - 273
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _get_plant_row(plant_name: str, powerplants_df: pd.DataFrame) -> pd.Series:
-    mask = powerplants_df["Name"] == plant_name
-    if not mask.any():
-        raise KeyError(f"Plant '{plant_name}' not found in powerplants_df.")
-    return powerplants_df.loc[mask].iloc[0]
-
-
-def _plant_temp_c(plant_row: pd.Series, cutout_data, time_index: pd.DatetimeIndex) -> np.ndarray:
-    raw = extract_lake_temp(cutout_data, plant_row["lat"], plant_row["lon"], time_index)
-    return raw - 273.0
-
-
 def _threshold_traces(time_index: pd.DatetimeIndex) -> list:
-    """Return DWT and SWT horizontal traces for the secondary (temperature) y-axis."""
-    t = list(time_index)
+    """DWT and SWT horizontal reference lines for the secondary (temperature) axis."""
+    t = [time_index[0], time_index[-1]]
     return [
         go.Scatter(
-            x=[t[0], t[-1]], y=[_DWT_C, _DWT_C],
+            x=t, y=[_DWT_C, _DWT_C],
             mode="lines",
             line=dict(color=_DWT_COLOR, dash="dash", width=1.2),
             name=f"DWT ({_DWT_C:.0f} °C)",
@@ -93,7 +62,7 @@ def _threshold_traces(time_index: pd.DatetimeIndex) -> list:
             hoverinfo="skip",
         ),
         go.Scatter(
-            x=[t[0], t[-1]], y=[_SWT_C, _SWT_C],
+            x=t, y=[_SWT_C, _SWT_C],
             mode="lines",
             line=dict(color=_SWT_COLOR, dash="dash", width=1.2),
             name=f"SWT ({_SWT_C:.0f} °C)",
@@ -103,22 +72,33 @@ def _threshold_traces(time_index: pd.DatetimeIndex) -> list:
     ]
 
 
-def _apply_layout(fig: go.Figure, title: str, time_index: pd.DatetimeIndex) -> None:
-    """Apply shared layout: title, axis labels, day ticks, hover mode."""
+def _apply_layout(
+    fig: go.Figure,
+    title: str,
+    time_index: pd.DatetimeIndex,
+    width: int = 1100,
+    height: int = 420,
+) -> None:
+    tickvals, ticktext = _compute_day_ticks(time_index)
     fig.update_layout(
         title=title,
+        width=width,
+        height=height,
         hovermode="x unified",
-        legend=dict(orientation="v", x=1.08, y=1.0),
+        margin=dict(l=60, r=220, t=60, b=60),
+        legend=dict(orientation="v", x=1.05, y=1.0, xanchor="left"),
         xaxis=dict(
             title="Time",
-            tickformat="%b %d",
-            dtick=86_400_000,          # major tick every day (ms)
+            tickmode="array",
+            tickvals=tickvals,
+            ticktext=ticktext,
+            tickangle=30,
+            hoverformat="%m-%d %H:00",
             minor=dict(
-                dtick=86_400_000 // 4, # minor tick every 6 h
+                dtick=86_400_000 // 4,  # minor tick every 6 h (ms)
                 showgrid=False,
                 ticks="inside",
             ),
-            tickangle=-30,
         ),
         yaxis=dict(
             title="Damage profile",
@@ -135,6 +115,29 @@ def _apply_layout(fig: go.Figure, title: str, time_index: pd.DatetimeIndex) -> N
     )
 
 
+def _build_damage_figure(
+    primary_traces: list,
+    secondary_traces: list,
+    title: str,
+    time_index: pd.DatetimeIndex,
+    width: int = 1100,
+    height: int = 420,
+) -> go.Figure:
+    """
+    Assemble a dual y-axis figure from pre-built trace lists.
+
+    primary_traces   → left y-axis  (damage profiles, yaxis="y")
+    secondary_traces → right y-axis (temperature,     yaxis="y2")
+
+    DWT / SWT threshold lines are appended automatically.
+    """
+    fig = go.Figure()
+    for trace in primary_traces + secondary_traces + _threshold_traces(time_index):
+        fig.add_trace(trace)
+    _apply_layout(fig, title, time_index, width, height)
+    return fig
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -144,16 +147,19 @@ def plot_plant_profile(
     damage_df: pd.DataFrame,
     cutout_data,
     powerplants_df: pd.DataFrame,
+    width: int = 1100,
+    height: int = 420,
 ) -> go.Figure:
     """
     Dual y-axis interactive plot for a single nuclear plant.
 
     Parameters
     ----------
-    plant_name     : name matching a column in damage_df and a row in powerplants_df
-    damage_df      : DataFrame from nuclear_damage.csv (index=timestamps, cols=plant names)
+    plant_name     : column in damage_df / Name in powerplants_df
+    damage_df      : nuclear_damage.csv (index=timestamps, cols=plant names)
     cutout_data    : xr.Dataset  (cutout.data)
-    powerplants_df : DataFrame from powerplants_s_{clusters}.csv (nuclear plants)
+    powerplants_df : powerplants_s_{clusters}.csv (nuclear plants only)
+    width, height  : figure dimensions in pixels
 
     Returns
     -------
@@ -166,32 +172,27 @@ def plot_plant_profile(
     time_index = damage_df.index
     temp_c = _plant_temp_c(plant, cutout_data, time_index)
 
-    fig = go.Figure()
-
-    # Damage profile (primary y)
-    fig.add_trace(go.Scatter(
-        x=time_index, y=damage_df[plant_name].values,
-        mode="lines",
-        name=plant_name,
-        line=dict(color=_DAMAGE_SINGLE_COLOR, width=1.5),
-        yaxis="y",
-    ))
-
-    # Lake temperature (secondary y)
-    fig.add_trace(go.Scatter(
-        x=time_index, y=temp_c,
-        mode="lines",
-        name="Lake temp",
-        line=dict(color=_TEMP_LINE_COLOR, width=1.2),
-        yaxis="y2",
-    ))
-
-    # DWT / SWT threshold lines
-    for trace in _threshold_traces(time_index):
-        fig.add_trace(trace)
-
-    _apply_layout(fig, title=f"Nuclear damage profile — {plant_name}", time_index=time_index)
-    return fig
+    primary = [
+        go.Scatter(
+            x=time_index, y=damage_df[plant_name].values,
+            mode="lines", name=plant_name,
+            line=dict(color=_DAMAGE_SINGLE_COLOR, width=1.5),
+            yaxis="y",
+        ),
+    ]
+    secondary = [
+        go.Scatter(
+            x=time_index, y=temp_c,
+            mode="lines", name="Lake temp",
+            line=dict(color=_TEMP_LINE_COLOR, width=1.2),
+            yaxis="y2",
+        ),
+    ]
+    return _build_damage_figure(
+        primary, secondary,
+        title=f"Nuclear damage profile with Water Temperature — {plant_name}",
+        time_index=time_index, width=width, height=height,
+    )
 
 
 def plot_bus_profile(
@@ -200,18 +201,21 @@ def plot_bus_profile(
     cutout_data,
     powerplants_df: pd.DataFrame,
     mode: str = "individual",
+    width: int = 1100,
+    height: int = 420,
 ) -> go.Figure:
     """
-    Dual y-axis interactive plot for all nuclear plants assigned to a given bus.
+    Dual y-axis interactive plot for all nuclear plants at a given bus.
 
     Parameters
     ----------
-    bus_name       : bus identifier (e.g. 'FR0 1') matching the 'bus' column
-    damage_df      : DataFrame from nuclear_damage.csv
+    bus_name       : bus identifier matching the 'bus' column in powerplants_df
+    damage_df      : nuclear_damage.csv
     cutout_data    : xr.Dataset  (cutout.data)
-    powerplants_df : DataFrame from powerplants_s_{clusters}.csv (nuclear plants)
-    mode           : 'individual' — one line per plant (uniform linewidth, legend-togglable)
-                     'aggregate'  — single capacity-weighted mean damage line
+    powerplants_df : powerplants_s_{clusters}.csv (nuclear plants only)
+    mode           : 'individual' — one legend-togglable line per plant
+                     'aggregate'  — single capacity-weighted mean line
+    width, height  : figure dimensions in pixels
 
     Returns
     -------
@@ -224,120 +228,99 @@ def plot_bus_profile(
         (powerplants_df["bus"] == bus_name) &
         (powerplants_df["Name"].isin(damage_df.columns))
     ].copy()
-
     if bus_plants.empty:
         raise ValueError(f"No nuclear plants found for bus '{bus_name}' in damage_df.")
 
     time_index = damage_df.index
     capacities = bus_plants["Capacity"].values.astype(float)
+    profiles = np.stack(
+        [damage_df[row["Name"]].values for _, row in bus_plants.iterrows()], axis=1
+    )
+    temps_c = np.stack(
+        [_plant_temp_c(row, cutout_data, time_index) for _, row in bus_plants.iterrows()],
+        axis=1,
+    )
 
-    profiles = np.stack([damage_df[row["Name"]].values for _, row in bus_plants.iterrows()], axis=1)
-    temps_c = np.stack([_plant_temp_c(row, cutout_data, time_index) for _, row in bus_plants.iterrows()], axis=1)
-
-    fig = go.Figure()
-
-    # --- Damage traces (primary y) ---
+    # Damage traces (primary y)
+    primary = []
     if mode == "individual":
         for i, (_, row) in enumerate(bus_plants.iterrows()):
-            color = _DAMAGE_COLORS[i % len(_DAMAGE_COLORS)]
-            fig.add_trace(go.Scatter(
+            primary.append(go.Scatter(
                 x=time_index, y=profiles[:, i],
-                mode="lines",
-                name=row["Name"],
-                line=dict(color=color, width=1.5),
+                mode="lines", name=row["Name"],
+                line=dict(color=_DAMAGE_COLORS[i % len(_DAMAGE_COLORS)], width=1.5),
                 yaxis="y",
             ))
-    else:  # aggregate
+    else:
         weighted = np.average(profiles, axis=1, weights=capacities)
-        fig.add_trace(go.Scatter(
+        primary.append(go.Scatter(
             x=time_index, y=weighted,
-            mode="lines",
-            name=f"{bus_name} (cap-weighted)",
+            mode="lines", name=f"{bus_name} (cap-weighted)",
             line=dict(color=_DAMAGE_SINGLE_COLOR, width=2.0),
             yaxis="y",
         ))
 
-    # --- Temperature band (secondary y) ---
-    t_min = temps_c.min(axis=1)
-    t_max = temps_c.max(axis=1)
-    t_mean = temps_c.mean(axis=1)
+    # Temperature band (secondary y)
     t_list = list(time_index)
-
-    # Upper boundary of band (invisible line, used as fill reference)
-    fig.add_trace(go.Scatter(
-        x=t_list, y=t_max,
-        mode="lines",
-        line=dict(color=_TEMP_BAND_LINE, width=0),
-        showlegend=False,
-        yaxis="y2",
-        hoverinfo="skip",
-    ))
-    # Lower boundary — fills back to upper
-    fig.add_trace(go.Scatter(
-        x=t_list, y=t_min,
-        mode="lines",
-        fill="tonexty",
-        fillcolor=_TEMP_BAND_FILL,
-        line=dict(color=_TEMP_BAND_LINE, width=0),
-        name="Temp range",
-        yaxis="y2",
-        hoverinfo="skip",
-    ))
-    # Mean temperature line
-    fig.add_trace(go.Scatter(
-        x=t_list, y=t_mean,
-        mode="lines",
-        name="Lake temp (mean)",
-        line=dict(color=_TEMP_LINE_COLOR, width=1.2),
-        yaxis="y2",
-    ))
-
-    # DWT / SWT threshold lines
-    for trace in _threshold_traces(time_index):
-        fig.add_trace(trace)
+    t_min  = temps_c.min(axis=1)
+    t_max  = temps_c.max(axis=1)
+    t_mean = temps_c.mean(axis=1)
+    secondary = [
+        go.Scatter(          # invisible upper boundary — fill reference
+            x=t_list, y=t_max,
+            mode="lines", line=dict(color="rgba(0,0,0,0)", width=0),
+            showlegend=False, yaxis="y2", hoverinfo="skip",
+        ),
+        go.Scatter(          # lower boundary fills back to upper
+            x=t_list, y=t_min,
+            mode="lines", fill="tonexty", fillcolor=_TEMP_BAND_FILL_RGBA,
+            line=dict(color="rgba(0,0,0,0)", width=0),
+            name="Temp range", yaxis="y2", hoverinfo="skip",
+        ),
+        go.Scatter(
+            x=t_list, y=t_mean,
+            mode="lines", name="Lake temp (mean)",
+            line=dict(color=_TEMP_LINE_COLOR, width=1.2),
+            yaxis="y2",
+        ),
+    ]
 
     mode_label = "individual plants" if mode == "individual" else "capacity-weighted aggregate"
-    _apply_layout(
-        fig,
-        title=f"Nuclear damage profiles — bus {bus_name} ({mode_label})",
-        time_index=time_index,
+    return _build_damage_figure(
+        primary, secondary,
+        title=f"Nuclear damage profiles with Water Temperature — bus {bus_name} ({mode_label})",
+        time_index=time_index, width=width, height=height,
     )
-    return fig
 
 
 def plot_vulnerability_table() -> go.Figure:
     """
     Bar chart of the water-temperature vulnerability lookup table.
 
-    x-axis : temperature above DWT (°C), range 0–17
-    y-axis : fraction inoperable (displayed as %)
-    A vertical dashed line marks the SWT threshold (= SWT - DWT °C above DWT),
-    which is where full shutdown begins.
+    x-axis   : temperature above DWT (°C), 0–17
+    y-axis   : fraction inoperable (%)
+    Subtitle : DWT and SWT values in °C (auto-updates if constants change)
+    A vertical dashed line marks the SWT threshold.
 
     Returns
     -------
     plotly.graph_objects.Figure
     """
-    csv_path = _SCRIPT_DIR / "water_temperature_vulnerability.csv"
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(_SCRIPT_DIR / "water_temperature_vulnerability.csv")
     thresholds = df["threshold"].astype(int).tolist()
     vulns = df["vulnerability"].tolist()
-
-    swt_threshold = SWT - DWT  # °C above DWT where full shutdown begins
+    swt_threshold = _SWT - _DWT  # °C above DWT
 
     fig = go.Figure()
-
     fig.add_trace(go.Bar(
         x=thresholds,
-        y=[v * 100 for v in vulns],  # display as %
-        marker_color="#1f77b4",
+        y=[v * 100 for v in vulns],
+        marker_color=_DAMAGE_SINGLE_COLOR,
         name="Vulnerability",
         hovertemplate="%{x} °C above DWT<br>Inoperable: %{y:.1f}%<extra></extra>",
     ))
-
-    # Vertical line at SWT threshold
     fig.add_vline(
-        x=swt_threshold - 0.5,  # offset to align with bar boundary
+        x=swt_threshold - 0.5,  # sits on the boundary before the SWT bar
         line_dash="dash",
         line_color=_SWT_COLOR,
         line_width=1.5,
@@ -345,19 +328,13 @@ def plot_vulnerability_table() -> go.Figure:
         annotation_position="top right",
         annotation_font_color=_SWT_COLOR,
     )
-
     fig.update_layout(
-        title="Nuclear plant vulnerability vs. temperature above DWT",
-        xaxis=dict(
-            title="Temperature above DWT (°C)",
-            dtick=1,
-            tickmode="linear",
-        ),
-        yaxis=dict(
-            title="Fraction inoperable (%)",
-            range=[0, 105],
-        ),
+        title=dict(text=(
+            "Nuclear plant vulnerability factor vs. temperature above DWT"
+            f"<br><sup>DWT = {_DWT_C:.0f} °C | SWT = {_SWT_C:.0f} °C</sup>"
+        )),
+        xaxis=dict(title="Temperature above DWT (°C)", dtick=1, tickmode="linear"),
+        yaxis=dict(title="Fraction inoperable (%)", range=[0, 105]),
         showlegend=False,
     )
-
     return fig
