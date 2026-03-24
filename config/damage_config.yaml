@@ -1,10 +1,13 @@
 # Atlite
 
-cutout_dir: cutouts  # absolute, ~/..., or relative to pypsa-eur root
+cutout_dir: /groups/EXTREMES/cutouts
 
 cutout_names:                           # optional: omit to process ALL .nc files in cutout_dir
-  # - be-2020-era5
-  - be-03-2008-era5
+  # - europe-2018-era5
+  # - europe-2019-era5
+  # - europe-2020-era5
+  - europe-2022-era5
+  - europe-2023-era5
 
 features:
   - wind_gust
