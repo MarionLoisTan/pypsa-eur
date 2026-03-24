@@ -15,6 +15,8 @@ _DMG_CFG = yaml.safe_load(
 # are used directly without triggering build_cutout.
 _raw = Path(_DMG_CFG["cutout_dir"]).expanduser()
 _DAMAGE_CUTOUT_DIR = _raw if _raw.is_absolute() else Path(workflow.basedir) / _raw
+# Custom (feature-suffixed) cutouts are written to a 'custom' subfolder alongside the source cutouts.
+_DAMAGE_CUTOUT_CUSTOM_DIR = _DAMAGE_CUTOUT_DIR / "custom"
 
 # Resolve which cutouts to prepare:
 #   - explicit cutout_names list in damage_config.yaml, OR
@@ -44,7 +46,7 @@ rule build_all_damage_cutouts:
     """
     input:
         expand(
-            "cutouts/custom/{cutout}_" + _DAMAGE_CUTOUT_SUFFIX + ".nc",
+            str(_DAMAGE_CUTOUT_CUSTOM_DIR / ("{cutout}_" + _DAMAGE_CUTOUT_SUFFIX + ".nc")),
             cutout=_DAMAGE_CUTOUT_NAMES,
         ),
 
@@ -67,7 +69,7 @@ rule build_damage_cutout:
     input:
         cutout=lambda w: str(_DAMAGE_CUTOUT_DIR / (w.cutout + ".nc")),
     output:
-        cutout="cutouts/custom/{cutout}_" + _DAMAGE_CUTOUT_SUFFIX + ".nc",
+        cutout=str(_DAMAGE_CUTOUT_CUSTOM_DIR / ("{cutout}_" + _DAMAGE_CUTOUT_SUFFIX + ".nc")),
     log:
         "logs/build_damage_cutout_{cutout}.log",
     benchmark:
