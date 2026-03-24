@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: Contributors to PyPSA-Eur <https://github.com/pypsa/pypsa-eur>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+2022-FR-base:
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+
+2022-FR-nucl_dmg:
+  damage:
+    nuclear: true
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
