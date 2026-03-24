@@ -37,7 +37,6 @@ update-dags = """
 generate-config = "python -c 'from scripts.lib.validation.config import generate_config_defaults, generate_config_schema; generate_config_defaults(); generate_config_schema()'"
 
 [dependencies]
-atlite = ">=0.3"
 bokeh = ">=3.8.0"
 cartopy = ">=0.25.0"
 copernicusmarine = ">=2.2.4"
@@ -164,6 +163,9 @@ all-tests = {depends-on = ["integration-tests", "clean-tests", "unit-tests"]}
 
 [feature.test.dependencies]
 pytest = ">=8.4.2"
+
+[pypi-dependencies]
+atlite = { path = "../atlite", editable = true }
 
 [environments]
 doc = { features = ["doc"], no-default-feature = true }

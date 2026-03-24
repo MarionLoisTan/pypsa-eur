@@ -11,34 +11,45 @@ Damage logic (per timestep, per plant):
 
 Parameters
 ----------
-SWT : 305 K  (32 °C + 273)
-DWT : 293 K  (20 °C + 273)
-SP  : 24 hours (shutdown propagation window)
+SWT : K  — shutdown water temperature threshold (from damage_config.yaml)
+DWT : K  — design water temperature (from damage_config.yaml)
+SP  : hours — shutdown propagation window (from damage_config.yaml)
 
-Inputs
-------
-config_path : path to config.yaml (main PyPSA-Eur config)
+Snakemake inputs
+----------------
+cutout      : path to a prepared _v2 cutout containing lake_s_temp
+powerplants : path to resources/powerplants_s_{clusters}.csv
 
-The cutout path, powerplants CSV path, snapshot period, and output directory
-are all derived from the config and the scenarios file referenced within it.
-
-Output
-------
-One CSV per scenario where damage.nuclear is true, saved to:
-  resources/{RDIR}/nuclear_damage_profiles/nuclear_damage.csv
-  - index   : hourly timestamps (snapshot period)
-  - columns : one per nuclear plant (plant Name)
+Snakemake outputs
+-----------------
+profile       : resources/damage_profiles/nuclear_damage_{clusters}.nc
+                Variable 'profile', dims (time, bus), values in [0, 1].
+                Bus-level capacity-weighted average of per-plant profiles.
+plant_profile : resources/damage_profiles/nuclear_damage_plants.nc
+                Variable 'profile', dims (time, plant), values in [0, 1].
+                Per-plant diagnostic output (plant names as coordinates).
 """
 
+import logging
+import sys
 from pathlib import Path
 
 import atlite
 import numpy as np
 import pandas as pd
+import xarray as xr
 import yaml
 
 _SCRIPT_DIR = Path(__file__).parent
 _PYPSA_ROOT = _SCRIPT_DIR.parent.parent
+
+logger = logging.getLogger(__name__)
+
+
+def load_damage_config() -> dict:
+    """Load damage_config.yaml from config/."""
+    with open(_PYPSA_ROOT / "config" / "damage_config.yaml") as f:
+        return yaml.safe_load(f)
 
 # ---------------------------------------------------------------------------
 # Vulnerability table
@@ -56,102 +67,6 @@ def get_vulnerability(degrees_above_dwt: float) -> float:
     """Map degrees above DWT to fraction-inoperable vulnerability (0–1)."""
     threshold = min(17, max(0, round(degrees_above_dwt)))
     return VULNERABILITY[threshold]
-
-
-# ---------------------------------------------------------------------------
-# Damage config helpers
-# ---------------------------------------------------------------------------
-def load_damage_config() -> dict:
-    """Load damage_config.yaml from the same directory as this script."""
-    with open(_SCRIPT_DIR / "damage_config.yaml") as f:
-        return yaml.safe_load(f)
-
-
-# ---------------------------------------------------------------------------
-# Config helpers
-# ---------------------------------------------------------------------------
-def load_configs(config_path: str | Path):
-    """Return (main_config dict, scenarios dict)."""
-    config_path = Path(config_path)
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-
-    scenarios_file = Path(config["run"]["scenarios"]["file"])
-    if not scenarios_file.is_absolute():
-        scenarios_file = _PYPSA_ROOT / scenarios_file
-
-    with open(scenarios_file) as f:
-        scenarios = yaml.safe_load(f)
-
-    return config, scenarios
-
-
-def _get_rdir(config: dict, scenario_name: str) -> str:
-    """Reconstruct RDIR string following the same logic as _helpers.get_rdir()."""
-    run = config["run"]
-    prefix = run.get("prefix", "")
-    scenarios_enabled = run.get("scenarios", {}).get("enable", False)
-
-    if run.get("name") and scenarios_enabled:
-        rdir = f"{scenario_name}/"
-    elif run.get("name"):
-        rdir = f"{run['name']}/"
-    else:
-        rdir = ""
-
-    if prefix:
-        rdir = f"{prefix}/{rdir}"
-
-    return rdir
-
-
-def get_cutout_path(config: dict) -> Path:
-    """
-    Derive the cutout path from the config.
-
-    If config has a data.cutout section (source + version), the path is:
-      data/cutout/{source}/{version}/{name}.nc
-    Otherwise falls back to:
-      cutouts/{name}.nc
-    """
-    name = config["atlite"]["default_cutout"]
-    data_cutout = config.get("data", {}).get("cutout", {})
-    source = data_cutout.get("source", "")
-    version = data_cutout.get("version", "")
-    if source and version:
-        return _PYPSA_ROOT / "data" / "cutout" / source / version / f"{name}.nc"
-    return _PYPSA_ROOT / "cutouts" / f"{name}.nc"
-
-
-def get_powerplants_path(config: dict, scenario_name: str) -> Path:
-    """Return resources/{RDIR}/powerplants_s_{clusters}.csv."""
-    rdir = _get_rdir(config, scenario_name)
-    clusters = config["scenario"]["clusters"][0]
-    return _PYPSA_ROOT / "resources" / rdir / f"powerplants_s_{clusters}.csv"
-
-
-def get_output_path(config: dict, scenario_name: str) -> Path:
-    """Return resources/{RDIR}/nuclear_damage.csv."""
-    rdir = _get_rdir(config, scenario_name)
-    return _PYPSA_ROOT / "resources" / rdir / "nuclear_damage.csv"
-
-
-def get_bus_profile_output_path(config: dict, scenario_name: str) -> Path:
-    """Return resources/{RDIR}/profile_{clusters}_nuclear.csv."""
-    rdir = _get_rdir(config, scenario_name)
-    clusters = config["scenario"]["clusters"][0]
-    return _PYPSA_ROOT / "resources" / rdir / f"profile_{clusters}_nuclear.csv"
-
-
-def get_snapshot_index(config: dict, scenario_cfg: dict) -> pd.DatetimeIndex:
-    """Return hourly DatetimeIndex for the scenario (falls back to main config)."""
-    snap = scenario_cfg.get("snapshots", config["snapshots"])
-    return pd.date_range(
-        start=snap["start"],
-        end=snap["end"],
-        freq="h",
-        inclusive=snap.get("inclusive", "left"),
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -220,138 +135,97 @@ def compute_damage_profile(
 
 
 # ---------------------------------------------------------------------------
-# Main entry point
+# Snakemake entry point
 # ---------------------------------------------------------------------------
-def build_nuclear_damage_profiles(config_path: str | Path):
-    """
-    Build nuclear damage profiles for all scenarios with damage.nuclear == True.
-
-    Cutout path, powerplants CSV, snapshot period, and output paths are all
-    derived from the config file.
-
-    Parameters
-    ----------
-    config_path : path to config.yaml
-    """
-    config, scenarios = load_configs(config_path)
-
-    dmg_cfg = load_damage_config()["nuclear"]
-    swt = dmg_cfg["SWT"]
-    dwt = dmg_cfg["DWT"]
-    sp = dmg_cfg["SP"]
-
-    # Filter to scenarios that request nuclear damage profiles
-    damage_scenarios = {
-        name: scen_cfg
-        for name, scen_cfg in scenarios.items()
-        if scen_cfg and scen_cfg.get("damage", {}).get("nuclear", False)
-    }
-
-    if not damage_scenarios:
-        print("No scenarios with damage.nuclear == true found. Nothing to do.")
-        return {}
-
-    cutout_path = get_cutout_path(config)
-    if not cutout_path.exists():
-        raise FileNotFoundError(
-            f"Cutout not found at {cutout_path}. "
-            "Ensure atlite.default_cutout in config.yaml points to a prepared cutout "
-            "that contains the lake_s_temp variable."
+if __name__ == "__main__":
+    if "snakemake" not in globals():
+        raise RuntimeError(
+            "This script is designed to be run via Snakemake. "
+            "For the standalone version use build_nuclear_damage_profiles_old.py."
         )
 
-    # Open cutout once (shared across scenarios)
-    cutout = atlite.Cutout(path=cutout_path)
+    configure_logging = None
+    try:
+        sys.path.insert(0, str(_SCRIPT_DIR.parent))
+        from _helpers import configure_logging
+        configure_logging(snakemake)
+    except Exception:
+        logging.basicConfig(level=logging.INFO)
+
+    swt = snakemake.params.swt
+    dwt = snakemake.params.dwt
+    sp = snakemake.params.sp
+
+    snap_cfg = snakemake.params.snapshots
+    drop_leap = snakemake.params.drop_leap_day
+
+    snapshot_index = pd.date_range(
+        start=snap_cfg["start"],
+        end=snap_cfg["end"],
+        freq="h",
+        inclusive=snap_cfg.get("inclusive", "left"),
+    )
+    if drop_leap:
+        snapshot_index = snapshot_index[
+            ~((snapshot_index.month == 2) & (snapshot_index.day == 29))
+        ]
+
+    powerplants_csv = Path(snakemake.input.powerplants)
+    nuclear = load_nuclear_plants(powerplants_csv)
+    logger.info(f"Found {len(nuclear)} active nuclear plants.")
+
+    want_bus = hasattr(snakemake.output, "profile")
+    want_plant = hasattr(snakemake.output, "plant_profile")
+
+    # Resolve where to save the per-plant profile:
+    #   - declared output when running build_nuclear_plant_damage_profile
+    #   - sibling file next to the bus profile when running build_nuclear_damage_profile
+    if want_plant:
+        plant_profile_path = Path(snakemake.output.plant_profile)
+    else:
+        plant_profile_path = (
+            Path(snakemake.output.profile).parent / "nuclear_damage_plants.nc"
+        )
+
+    cutout = atlite.Cutout(path=snakemake.input.cutout)
     cutout_data = cutout.data
 
-    results = {}
+    # --- Step 1: per-plant profiles (always computed and saved) ---
+    plant_profiles = {}
+    for _, plant in nuclear.iterrows():
+        lake_temp = extract_lake_temp(
+            cutout_data, plant["lat"], plant["lon"], snapshot_index
+        )
+        plant_profiles[plant["Name"]] = compute_damage_profile(
+            lake_temp, swt=swt, dwt=dwt, sp=sp
+        )
 
-    for scenario_name, scen_cfg in damage_scenarios.items():
-        print(f"\nProcessing scenario: {scenario_name}")
+    plant_df = pd.DataFrame(plant_profiles, index=snapshot_index)
 
-        snapshot_index = get_snapshot_index(config, scen_cfg)
-        powerplants_csv = get_powerplants_path(config, scenario_name)
+    plant_profile_path.parent.mkdir(parents=True, exist_ok=True)
+    plant_da = xr.DataArray(
+        plant_df.values,
+        dims=["time", "plant"],
+        coords={"time": snapshot_index, "plant": plant_df.columns.tolist()},
+    )
+    xr.Dataset({"profile": plant_da}).to_netcdf(plant_profile_path)
+    logger.info(f"Saved per-plant profile: {plant_profile_path}")
 
-        if not powerplants_csv.exists():
-            print(f"  WARNING: powerplants CSV not found at {powerplants_csv}, skipping.")
-            continue
-
-        nuclear = load_nuclear_plants(powerplants_csv)
-        print(f"  Found {len(nuclear)} active nuclear plants.")
-
-        profiles = {}
-        for _, plant in nuclear.iterrows():
-            lake_temp = extract_lake_temp(cutout_data, plant["lat"], plant["lon"], snapshot_index)
-            profiles[plant["Name"]] = compute_damage_profile(lake_temp, swt=swt, dwt=dwt, sp=sp)
-
-        df_out = pd.DataFrame(profiles, index=snapshot_index)
-
-        out_path = get_output_path(config, scenario_name)
-        df_out.to_csv(out_path)
-        print(f"  Saved: {out_path}")
-
-        results[scenario_name] = df_out
-
-    return results
-
-
-# ---------------------------------------------------------------------------
-# Bus-level aggregation
-# ---------------------------------------------------------------------------
-def build_bus_damage_profiles(results: dict, config: dict, scenarios: dict) -> dict:
-    """
-    Aggregate per-plant damage profiles to bus level using capacity-weighted averaging.
-
-    For each bus, the profile is the capacity-weighted mean of all nuclear plants
-    connected to that bus.
-
-    Parameters
-    ----------
-    results   : {scenario_name: damage_df} as returned by build_nuclear_damage_profiles
-    config    : main config dict (from load_configs)
-    scenarios : scenarios dict (from load_configs)
-
-    Output
-    ------
-    One CSV per scenario, saved to:
-      resources/{RDIR}/profile_{clusters}_nuclear.csv
-      - index   : hourly timestamps
-      - columns : one per bus that has at least one nuclear plant
-    """
-    bus_results = {}
-
-    for scenario_name, damage_df in results.items():
-        powerplants_csv = get_powerplants_path(config, scenario_name)
-        if not powerplants_csv.exists():
-            print(f"  WARNING: powerplants CSV not found at {powerplants_csv}, skipping.")
-            continue
-
-        nuclear = load_nuclear_plants(powerplants_csv)
-
+    # --- Step 2: bus-level aggregation (capacity-weighted mean of per-plant profiles) ---
+    if want_bus:
         bus_profiles = {}
         for bus in nuclear["bus"].unique():
             plants_at_bus = nuclear[nuclear["bus"] == bus].set_index("Name")
-            common = plants_at_bus.index.intersection(damage_df.columns)
+            common = plants_at_bus.index.intersection(plant_df.columns)
             weights = plants_at_bus.loc[common, "Capacity"]
-            bus_profiles[bus] = damage_df[common].dot(weights) / weights.sum()
+            bus_profiles[bus] = plant_df[common].dot(weights) / weights.sum()
 
-        df_out = pd.DataFrame(bus_profiles, index=damage_df.index)
+        bus_df = pd.DataFrame(bus_profiles, index=snapshot_index)
 
-        out_path = get_bus_profile_output_path(config, scenario_name)
-        df_out.to_csv(out_path)
-        print(f"  Saved bus profiles: {out_path}")
-
-        bus_results[scenario_name] = df_out
-
-    return bus_results
-
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Build nuclear damage profiles.")
-    parser.add_argument("config_path", help="Path to config.yaml")
-    args = parser.parse_args()
-
-    config, scenarios = load_configs(args.config_path)
-    results = build_nuclear_damage_profiles(config_path=args.config_path)
-    build_bus_damage_profiles(results, config, scenarios)
+        bus_da = xr.DataArray(
+            bus_df.values,
+            dims=["time", "bus"],
+            coords={"time": snapshot_index, "bus": bus_df.columns.tolist()},
+        )
+        xr.Dataset({"profile": bus_da}).to_netcdf(snakemake.output.profile)
+        logger.info(f"Saved bus-level profile: {snakemake.output.profile}")

@@ -1,0 +1,23 @@
+# Atlite
+
+cutout_dir: cutouts  # absolute, ~/..., or relative to pypsa-eur root
+
+cutout_names:                           # optional: omit to process ALL .nc files in cutout_dir
+  # - be-2020-era5
+  - be-03-2008-era5
+
+features:
+  - wind_gust
+  - lake_s_temperature
+
+feature_shortcodes:        # ERA5 GRIB shortcode for each feature — used to name output files
+  wind_gust: fg10
+  lake_s_temperature: lmlt
+  lake_t_temperature: ltlt
+
+# Damage
+
+nuclear:
+  shutdown_water_temp: 303  # K — shutdown water temperature threshold (30°C + 273)
+  design_water_temp: 293  # K — design water temperature (20°C + 273)
+  shutdown_period: 24    # hours — shutdown period
