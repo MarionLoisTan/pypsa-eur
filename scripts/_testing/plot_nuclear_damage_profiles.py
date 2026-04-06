@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from ._plotting import (
+from _plotting_helpers import (
     _DWT,
     _SWT,
     _SCRIPT_DIR,

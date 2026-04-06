@@ -13,11 +13,11 @@ Parameters
 ----------
 SWT : K  — shutdown water temperature threshold (from damage_config.yaml)
 DWT : K  — design water temperature (from damage_config.yaml)
-SP  : hours — shutdown propagation window (from damage_config.yaml)
+SP  : hours — shutdown period (from damage_config.yaml)
 
 Snakemake inputs
 ----------------
-cutout      : path to a prepared _v2 cutout containing lake_s_temp
+cutout      : path to a prepared cutout containing lake_s_temp
 powerplants : path to resources/powerplants_s_{clusters}.csv
 
 Snakemake outputs

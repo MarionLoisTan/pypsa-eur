@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.ticker as mticker
 
-from ._plotting import (
+from _plotting_helpers import (
     _DWT,
     _SWT,
     _SCRIPT_DIR,

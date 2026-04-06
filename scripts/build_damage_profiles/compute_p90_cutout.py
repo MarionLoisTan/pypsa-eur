@@ -15,8 +15,10 @@ Output
 
 from pathlib import Path
 
-import atlite
+import geopandas as gpd
+import matplotlib.pyplot as plt
 import pandas as pd
+import xarray as xr
 
 
 def compute_p90_profile(
@@ -40,13 +42,13 @@ def compute_p90_profile(
     cutout_path = Path(cutout_path).resolve()
     if not cutout_path.exists():
         raise FileNotFoundError(f"Cutout not found: {cutout_path}")
-    cutout = atlite.Cutout(path=cutout_path)
-    data = cutout.data[variable]  # DataArray (time, y, x)
+    ds = xr.open_dataset(cutout_path)
+    data = ds[variable]  # DataArray (time, y, x)
 
     p90 = data.quantile(0.9, dim="time").drop_vars("quantile")
 
     # Derive year string from the time coordinate
-    years = pd.DatetimeIndex(cutout.data.time.values).year.unique()
+    years = pd.DatetimeIndex(ds.time.values).year.unique()
     year = str(years[0]) if len(years) == 1 else f"{years.min()}-{years.max()}"
 
     out_name = f"p90-{variable}-{year}-era5.nc"
@@ -56,6 +58,57 @@ def compute_p90_profile(
     p90.to_netcdf(out_path)
     print(f"Saved: {out_path}")
     return out_path
+
+
+def plot_p90_heatmap(
+    p90_path: str | Path,
+    regions_path: str | Path | None = None,
+    save_path: str | Path | None = None,
+    cmap: str = "viridis",
+) -> plt.Figure:
+    """
+    Plot a heatmap of the per-grid-cell p90 values from a p90-*.nc file,
+    with optional bus region boundaries overlaid.
+
+    Parameters
+    ----------
+    p90_path     : path to the p90 NetCDF file produced by compute_p90_profile
+    regions_path : optional path to a GeoJSON of bus regions to overlay
+                   (e.g. resources/2022-FR/2022-FR-base/regions_onshore_base_s_5.geojson)
+    save_path    : optional path to save the figure (e.g. 'p90_map.png');
+                   if None the figure is displayed interactively
+    cmap         : matplotlib colormap name (default 'viridis')
+
+    Returns
+    -------
+    matplotlib Figure
+    """
+    p90_path = Path(p90_path)
+    ds = xr.open_dataset(p90_path)
+
+    var_name = list(ds.data_vars)[0]
+    da = ds[var_name]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    da.plot(ax=ax, x="x", y="y", cmap=cmap)
+
+    if regions_path is not None:
+        regions = gpd.read_file(regions_path)
+        regions.plot(ax=ax, facecolor="none", edgecolor="black", linewidth=0.8)
+
+    ax.set_title(f"p90 — {var_name}  ({p90_path.stem})")
+    ax.set_xlabel("Longitude")
+    ax.set_ylabel("Latitude")
+
+    plt.tight_layout()
+
+    if save_path is not None:
+        fig.savefig(save_path, dpi=150)
+        print(f"Saved figure: {save_path}")
+    else:
+        plt.show()
+
+    return fig
 
 
 if __name__ == "__main__":
