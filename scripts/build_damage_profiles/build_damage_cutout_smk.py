@@ -10,7 +10,9 @@ cutout : path to the source cutout (.nc)
 
 Outputs
 -------
-cutout : path for the prepared _v2 copy (cutouts/custom/{cutout}_v2.nc)
+cutout : path for the feature-suffixed copy written to the custom subdirectory
+         alongside the source cutouts, e.g. {cutout_dir}/custom/{cutout}_{feature_shortcodes}.nc
+         where feature_shortcodes encodes the ERA5 features added (e.g. fg10_lmlt).
 """
 
 import logging

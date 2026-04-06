@@ -799,6 +799,15 @@ rule add_electricity:
         "../scripts/add_electricity.py"
 
 
+def input_damage_profiles(w):
+    damage = config_provider("damage", default={})(w) or {}
+    return {
+        f"damage_{tech}": resources(_DAMAGE_PROFILE_PATTERNS[tech])
+        for tech, enabled in damage.items()
+        if enabled and tech in _DAMAGE_PROFILE_PATTERNS
+    }
+
+
 rule prepare_network:
     message:
         "Preparing network for model with {wildcards.clusters} clusters and options {wildcards.opts}"
@@ -816,8 +825,10 @@ rule prepare_network:
         autarky=config_provider("electricity", "autarky", default={}),
         drop_leap_day=config_provider("enable", "drop_leap_day"),
         transmission_limit=config_provider("electricity", "transmission_limit"),
+        damage=config_provider("damage", default={}),
     input:
-        resources("networks/base_s_{clusters}_elec.nc"),
+        unpack(input_damage_profiles),
+        network=resources("networks/base_s_{clusters}_elec.nc"),
         costs=lambda w: resources(
             f"costs_{config_provider('costs', 'year')(w)}_processed.csv"
         ),

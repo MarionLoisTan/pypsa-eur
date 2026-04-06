@@ -6,8 +6,23 @@
   electricity:
     renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
 
-2022-FR-nucl_dmg:
-  damage:
-    nuclear: true
+2022-FR-nucl_dmg_cap:
   electricity:
     renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
+    # damage values per technology:
+    #   capacity  → apply only during prepare_network (capacity optimization)
+    #   dispatch  → apply only during solve_operations_network_damaged (dispatch re-run)
+    #   true      → apply in both phases (legacy / backward compat)
+    nuclear: capacity
+  
+2022-FR-nucl_dmg_dis:
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
+    # damage values per technology:
+    #   capacity  → apply only during prepare_network (capacity optimization)
+    #   dispatch  → apply only during solve_operations_network_damaged (dispatch re-run)
+    #   true      → apply in both phases (legacy / backward compat)
+    nuclear: dispatch
+ 
