@@ -57,6 +57,8 @@ dask-worker-space/
 publications.jrc.ec.europa.eu/
 d1gam3xoknrgr2.cloudfront.net/
 
+/slurm_logs/
+
 *.org
 
 *.nc
