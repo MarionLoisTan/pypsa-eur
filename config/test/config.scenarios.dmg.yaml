@@ -9,7 +9,8 @@ run:
   prefix: "2022-FR"
   name:
   - 2022-FR-base
-  - 2022-FR-nucl_dmg
+  - 2022-FR-nucl_dmg_cap
+  - 2022-FR-nucl_dmg_dis
   scenarios:
     enable: true
     file: "config/test/scenarios.dmg.yaml"

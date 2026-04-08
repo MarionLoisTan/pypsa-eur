@@ -35,6 +35,42 @@ _DAMAGE_CUTOUT_SUFFIX = "_".join(
     _shortcodes[f] for f in _DMG_CFG["features"] if f in _shortcodes
 )
 
+# Map scenario damage config keys to the resource path pattern for each technology's
+# bus-level damage profile. Used by input_damage_profiles() in build_electricity.smk
+# and the solve rules to conditionally add damage profile inputs.
+_DAMAGE_PROFILE_PATTERNS = {
+    "nuclear":    "damage_profiles/nuclear_damage_{clusters}.nc",
+    "onwind":     "damage_profiles/onwind_damage_{clusters}.nc",
+    "offwind-ac": "damage_profiles/offwind-ac_damage_{clusters}.nc",
+    "offwind-dc": "damage_profiles/offwind-dc_damage_{clusters}.nc",
+}
+
+# Resolve which runs require nuclear damage profiles.
+# When scenarios are enabled, only include runs with damage.nuclear: true.
+# When scenarios are disabled, fall back to all run names.
+if scenarios:
+    # Per-technology list of runs that have damage enabled (any phase).
+    # Keyed by technology name matching _DAMAGE_PROFILE_PATTERNS.
+    _damage_runs = {
+        tech: [
+            r for r, cfg in scenarios.items()
+            if (cfg or {}).get("damage", {}).get(tech, False)
+        ]
+        for tech in _DAMAGE_PROFILE_PATTERNS
+    }
+    # Runs where any tech has damage applied at the dispatch phase.
+    # Includes "dispatch" and True (both phases).
+    _dispatch_damage_runs = [
+        r for r, cfg in scenarios.items()
+        if any(
+            v in ("dispatch", True)
+            for v in (cfg or {}).get("damage", {}).values()
+        )
+    ]
+else:
+    _damage_runs = {tech: [] for tech in _DAMAGE_PROFILE_PATTERNS}
+    _dispatch_damage_runs = []
+
 
 rule build_all_damage_cutouts:
     """
@@ -93,9 +129,8 @@ rule build_all_nuclear_damage_profiles:
         expand(
             resources("damage_profiles/nuclear_damage_{clusters}.nc"),
             clusters=config["scenario"]["clusters"],
-            run=config["run"]["name"],
+            run=_damage_runs["nuclear"],
         ),
-
 
 rule build_nuclear_damage_profile:
     """
@@ -157,3 +192,43 @@ rule build_nuclear_plant_damage_profile:
         mem_mb=4000,
     script:
         "../scripts/build_damage_profiles/build_nuclear_damage_profiles.py"
+
+rule solve_all_damaged_dispatch:
+    """
+    Convenience target: run solve_operations_network_damaged for all scenarios
+    with dispatch-phase damage (nuclear: dispatch or nuclear: true).
+
+    Usage:
+        snakemake solve_all_damaged_dispatch --configfile config/config.yaml -j4
+    """
+    input:
+        expand(
+            RESULTS + "networks/base_s_{clusters}_elec_{opts}_damaged-dispatch.nc",
+            run=_dispatch_damage_runs,
+            clusters=config["scenario"]["clusters"],
+            opts=config["scenario"]["opts"],
+        ),
+
+
+rule solve_all_scenarios:
+    """
+    Convenience target: solve all scenarios defined in the scenarios file.
+    Runs solve_network for every run, plus solve_operations_network_damaged
+    for any scenario with dispatch-phase damage.
+
+    Usage:
+        snakemake solve_all_scenarios --configfile config/config.yaml -j4
+    """
+    input:
+        expand(
+            RESULTS + "networks/base_s_{clusters}_elec_{opts}.nc",
+            run=config["run"]["name"],
+            clusters=config["scenario"]["clusters"],
+            opts=config["scenario"]["opts"],
+        ),
+        expand(
+            RESULTS + "networks/base_s_{clusters}_elec_{opts}_damaged-dispatch.nc",
+            run=_dispatch_damage_runs,
+            clusters=config["scenario"]["clusters"],
+            opts=config["scenario"]["opts"],
+        ),

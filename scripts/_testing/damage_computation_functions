@@ -1,0 +1,155 @@
+import pypsa as ps
+import atlite
+import xarray as xr
+import numpy as np
+import pandas as pd
+from pathlib import Path
+
+
+# Get the root directory (where you're running the notebook)
+root = Path.cwd()
+home_root = root
+print(f"Home root: {home_root}")
+mscthesis_root = home_root / "mscthesis"
+pypsa_eur_root = home_root / "pypsa-eur"
+
+pypsa_eur_scripts = pypsa_eur_root / "scripts"
+
+cutout_name = "be-03-2008-era5.nc"
+cutout_path = pypsa_eur_root / "cutouts" / cutout_name
+
+config_name = "2008-test-damage"
+
+# ====================
+# CONFIGURATION
+# ====================
+DAMAGE_THRESHOLD = 15  # m/s - adjust as needed
+NETWORK_PATH = f"{pypsa_eur_root}/resources/{config_name}/networks/base_s_5_elec.nc"
+CUTOUT_PATH = cutout_path
+AVAILABILITY_PATH = f"{pypsa_eur_root}/resources/{config_name}/availability_matrix_5_onwind.nc"
+OUTPUT_PATH = f"{pypsa_eur_root}/resources/{config_name}/damage_onwind_fraction_mask.nc"
+PROFILE_PATH = f"{pypsa_eur_root}/resources/{config_name}/profile_5_onwind.nc"
+OUTPUT_DAMAGED_PROFILE_PATH = f"{pypsa_eur_root}/resources/{config_name}/profile_5_onwind_damaged.nc"
+
+
+# ====================
+# 1. LOAD DATA
+# ====================
+print("Loading network...")
+n = ps.Network(NETWORK_PATH)
+wind_gens = n.generators[n.generators.carrier.str.contains("onwind|offwind")]
+wind_buses = wind_gens['bus'].unique()
+print(f"  Found {len(wind_buses)} wind buses")
+
+print("\nLoading cutout...")
+cutout = atlite.Cutout(CUTOUT_PATH)
+wind_speeds = cutout.data['wnd100m']
+
+print("\nLoading availability matrix...")
+availability = xr.open_dataarray(AVAILABILITY_PATH)
+availability_wind = availability.sel(bus=wind_buses)
+
+# ====================
+# 2-3. CALCULATE DAMAGE FRACTIONS
+# ====================
+print(f"\nCalculating damage fractions (threshold: {DAMAGE_THRESHOLD} m/s)...")
+
+damage_fractions = []
+
+for bus in wind_buses:
+    # Get relevant grid cells (availability > 0)
+    spatial_weights = availability_wind.sel(bus=bus)
+    relevant_cells = spatial_weights > 0
+    n_relevant = relevant_cells.sum().values
+    
+    if n_relevant == 0:
+        # No relevant cells - no damage possible
+        bus_fraction = xr.DataArray(
+            np.zeros(len(wind_speeds.time)),
+            dims=['time'],
+            coords={'time': wind_speeds.time}
+        )
+    else:
+        # Count damaged cells per timestep
+        grid_damage = (wind_speeds >= DAMAGE_THRESHOLD).astype(float)
+        relevant_cells_broadcast = relevant_cells.broadcast_like(grid_damage)
+        damage_in_relevant = grid_damage.where(relevant_cells_broadcast, 0)
+        n_damaged_per_time = damage_in_relevant.sum(dim=['y', 'x'])
+        
+        # Calculate fraction
+        bus_fraction = n_damaged_per_time / n_relevant
+    
+    damage_fractions.append(bus_fraction)
+    
+# Check calculation for last bus
+print(f"\nSample results for bus: {bus}")
+print(f"number of relevant cells: {n_relevant}")
+print(f"damaged relevant cells timesteps: {n_damaged_per_time.values[:15]}")
+print(f"bus_fraction timesteps: {bus_fraction.values[:15]}")
+
+# ====================
+# 4. EXPORT
+# ====================
+# Convert to operational mask (1.0 = fully operational, 0.0 = fully damaged)
+operational_mask = 1.0 - xr.concat(damage_fractions, dim=pd.Index(wind_buses, name='bus'))
+if operational_mask.dims == ('bus', 'time'):
+    operational_mask = operational_mask.transpose('time', 'bus')
+
+print(f"\nOperational mask shape: {operational_mask.shape}")
+print(f"Overall avg operational fraction: {operational_mask.mean().values:.3f}")
+
+print(f"\nSaving to: {OUTPUT_PATH}")
+operational_mask.to_netcdf(OUTPUT_PATH)
+print("✓ Done!")
+
+print("\nLoading original profile...")
+profile_ds = xr.open_dataset(PROFILE_PATH)
+print(f"  Profile shape: {profile_ds['profile'].shape}")
+print(f"  Profile dimensions: {profile_ds['profile'].dims}")
+
+print("\nApplying operational mask...")
+# Multiply profile by operational mask (broadcasting handles dimension alignment)
+damaged_profile = profile_ds.copy()
+damaged_profile['profile'] = profile_ds['profile'] * operational_mask
+
+# Statistics
+original_mean = profile_ds['profile'].mean().values
+damaged_mean = damaged_profile['profile'].mean().values
+reduction_pct = 100 * (1 - damaged_mean / original_mean)
+
+print(f"  Original mean capacity factor: {original_mean:.4f}")
+print(f"  Damaged mean capacity factor: {damaged_mean:.4f}")
+print(f"  Overall reduction: {reduction_pct:.2f}%")
+
+print(f"\nSaving damaged profile to: {OUTPUT_DAMAGED_PROFILE_PATH}")
+damaged_profile.to_netcdf(OUTPUT_DAMAGED_PROFILE_PATH)
+print("✓ Done!")
+
+# ====================
+# 5. APPLY MASK TO PROFILE
+# ====================
+PROFILE_PATH = f"{pypsa_eur_root}/resources/{config_name}/profile_5_onwind.nc"
+OUTPUT_DAMAGED_PROFILE_PATH = f"{pypsa_eur_root}/resources/{config_name}/profile_5_onwind_damaged.nc"
+
+print("\nLoading original profile...")
+profile_ds = xr.open_dataset(PROFILE_PATH)
+print(f"  Profile shape: {profile_ds['profile'].shape}")
+print(f"  Profile dimensions: {profile_ds['profile'].dims}")
+
+print("\nApplying operational mask...")
+# Multiply profile by operational mask (broadcasting handles dimension alignment)
+damaged_profile = profile_ds.copy()
+damaged_profile['profile'] = profile_ds['profile'] * operational_mask
+
+# Statistics
+original_mean = profile_ds['profile'].mean().values
+damaged_mean = damaged_profile['profile'].mean().values
+reduction_pct = 100 * (1 - damaged_mean / original_mean)
+
+print(f"  Original mean capacity factor: {original_mean:.4f}")
+print(f"  Damaged mean capacity factor: {damaged_mean:.4f}")
+print(f"  Overall reduction: {reduction_pct:.2f}%")
+
+print(f"\nSaving damaged profile to: {OUTPUT_DAMAGED_PROFILE_PATH}")
+damaged_profile.to_netcdf(OUTPUT_DAMAGED_PROFILE_PATH)
+print("✓ Done!")

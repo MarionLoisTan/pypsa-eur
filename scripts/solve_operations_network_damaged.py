@@ -1,9 +1,10 @@
+import logging
+
 import pypsa
-import xarray as xr
-import pandas as pd
-from pathlib import Path
 from scripts._helpers import configure_logging, set_scenario_config, update_config_from_wildcards
 from scripts.solve_network import prepare_network
+
+logger = logging.getLogger(__name__)
 
 
 def add_load_shedding(n):
@@ -93,49 +94,9 @@ if __name__ == "__main__":
     
     # Load the solved network (with optimized capacities from normal profile)
     n = pypsa.Network(snakemake.input.network)
-    
-    # Load damaged profile (hourly resolution)
-    damaged_profile_ds = xr.open_dataset(snakemake.input.damaged_profile)
-    damaged_profile_hourly = damaged_profile_ds['profile'].squeeze(drop=True).to_pandas()
-    
-    # Check if network has been time-aggregated
-    network_snapshots = n.snapshots
-    profile_timesteps = damaged_profile_hourly.index
-    
-    print(f"Network has {len(network_snapshots)} snapshots")
-    print(f"Damaged profile has {len(profile_timesteps)} timesteps")
-    
-    # Determine if aggregation is needed
-    if len(network_snapshots) < len(profile_timesteps):
-        print("Network is time-aggregated. Aggregating damaged profile to match...")
-        
-        # Determine network temporal resolution
-        if len(network_snapshots) > 1:
-            time_diff = network_snapshots[1] - network_snapshots[0]
-        else:
-            time_diff = pd.Timedelta('1h')  # Default to hourly
-        
-        print(f"Detected network resolution: {time_diff}")
-        
-        # Resample damaged profile to match (using mean for capacity factors)
-        damaged_profile = damaged_profile_hourly.resample(time_diff).mean()
-        
-        # Align with network snapshots (trim to match length)
-        min_len = min(len(damaged_profile), len(network_snapshots))
-        damaged_profile = damaged_profile.iloc[:min_len]
-        damaged_profile.index = network_snapshots[:min_len]
-        
-        print(f"Aggregated damaged profile to {len(damaged_profile)} timesteps")
-    else:
-        # No aggregation needed
-        damaged_profile = damaged_profile_hourly
-        print("Using hourly damaged profile (no aggregation needed)")
-    
-    # Replace onwind p_max_pu with damaged profile
-    onwind_gens = n.generators[n.generators.carrier == "onwind"]
-    if len(onwind_gens) > 0:
-        n.generators_t.p_max_pu[onwind_gens.index] = damaged_profile[onwind_gens.bus]
-        print(f"Applied damaged profile to {len(onwind_gens)} onwind generators")
+
+    from scripts.build_damage_profiles._apply import apply_damage_profiles
+    apply_damage_profiles(n, snakemake.params.damage, snakemake.input, phase="dispatch")
     
     # Fix all capacities (p_nom, e_nom, etc.) - dispatch only
     n.optimize.fix_optimal_capacities()

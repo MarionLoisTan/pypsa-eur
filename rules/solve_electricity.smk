@@ -83,9 +83,10 @@ rule solve_operations_network_damaged_elec:
         ),
         planning_horizons=None,
         custom_extra_functionality=input_custom_extra_functionality,
+        damage=config_provider("damage", default={}),
     input:
+        unpack(input_damage_profiles),
         network=RESULTS + "networks/base_s_{clusters}_elec_{opts}.nc",
-        damaged_profile=ancient(resources("damage_profiles/profile_{clusters}_onwind_damaged.nc"))
     output:
         network=RESULTS + "networks/base_s_{clusters}_elec_{opts}_damaged-dispatch.nc",
     log:

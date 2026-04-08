@@ -29,8 +29,6 @@ import logging
 import numpy as np
 import pandas as pd
 import pypsa
-from pathlib import Path
-import xarray as xr
 
 
 from scripts._helpers import (
@@ -310,7 +308,7 @@ if __name__ == "__main__":
     set_scenario_config(snakemake)
     update_config_from_wildcards(snakemake.config, snakemake.wildcards)
 
-    n = pypsa.Network(snakemake.input[0])
+    n = pypsa.Network(snakemake.input.network)
     Nyears = n.snapshot_weightings.objective.sum() / 8760.0
     costs = load_costs(snakemake.input.costs)
 
@@ -367,32 +365,8 @@ if __name__ == "__main__":
         only_crossborder = snakemake.params.autarky["by_country"]
         enforce_autarky(n, only_crossborder=only_crossborder)
     
-    # Apply damaged profiles if "damaged" in opts
-    if "damaged" in snakemake.wildcards.opts:
-        damaged_techs = ["onwind"]  # Extend this list as you create more damaged profiles
-        
-        for tech in damaged_techs:
-            # Find generators of this technology
-            gens = n.generators[n.generators.carrier == tech]
-            
-            if len(gens) > 0:
-                # Construct path to damaged profile
-                profile_dir = Path(snakemake.input[0]).parent.parent
-                damaged_profile_path = profile_dir / f"profile_{snakemake.wildcards.clusters}_{tech}_damaged.nc"
-                
-                print(f"Loading damaged {tech} profile from: {damaged_profile_path}")
-                damaged_profile_ds = xr.open_dataset(damaged_profile_path)
-                
-                # Squeeze out singleton dimensions (year, bin)
-                profile_da = damaged_profile_ds['profile'].squeeze(drop=True)
-                print(f"Profile dimensions after squeeze: {profile_da.dims}, shape: {profile_da.shape}")
-                
-                # Convert to pandas (should now be time x bus)
-                damaged_profile = profile_da.to_pandas()
-                
-                # Replace p_max_pu for these generators
-                n.generators_t.p_max_pu[gens.index] = damaged_profile[gens.bus]
-                print(f"Applied damaged profile to {len(gens)} {tech} generators")
+    from scripts.build_damage_profiles._apply import apply_damage_profiles
+    apply_damage_profiles(n, snakemake.params.damage, snakemake.input, phase="capacity")
                 
     n.meta = dict(snakemake.config, **dict(wildcards=dict(snakemake.wildcards)))
     n.export_to_netcdf(snakemake.output[0])
