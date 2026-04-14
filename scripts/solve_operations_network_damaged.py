@@ -4,6 +4,10 @@ import pypsa
 from scripts._helpers import configure_logging, set_scenario_config, update_config_from_wildcards
 from scripts.solve_network import prepare_network
 
+from scripts.build_damage_profiles._apply import apply_damage_profiles
+from scripts.solve_network import collect_kwargs
+from scripts._benchmark import memory_logger
+
 logger = logging.getLogger(__name__)
 
 
@@ -95,7 +99,6 @@ if __name__ == "__main__":
     # Load the solved network (with optimized capacities from normal profile)
     n = pypsa.Network(snakemake.input.network)
 
-    from scripts.build_damage_profiles._apply import apply_damage_profiles
     apply_damage_profiles(n, snakemake.params.damage, snakemake.input, phase="dispatch")
     
     # Fix all capacities (p_nom, e_nom, etc.) - dispatch only
@@ -121,9 +124,6 @@ if __name__ == "__main__":
     print("Network prepared for solving")
 
     # Solve the network (dispatch only)
-    from scripts.solve_network import collect_kwargs
-    from scripts._benchmark import memory_logger
-
     rolling_horizon = solve_opts.get("rolling_horizon", False)
     mode = "rolling_horizon" if rolling_horizon else "single"
 
