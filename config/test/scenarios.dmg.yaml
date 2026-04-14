@@ -1,6 +1,4 @@
-# SPDX-FileCopyrightText: Contributors to PyPSA-Eur <https://github.com/pypsa/pypsa-eur>
-#
-# SPDX-License-Identifier: CC0-1.0
+
 
 2022-FR-base:
   electricity:
@@ -11,9 +9,10 @@
     renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
   damage:
     # damage values per technology:
-    #   capacity  → apply only during prepare_network (capacity optimization)
+    #   capacity  → apply only during prepare_network (capacity optimization), inherently also solves operations for damaged network.
     #   dispatch  → apply only during solve_operations_network_damaged (dispatch re-run)
-    #   true      → apply in both phases (legacy / backward compat)
+    #   False / None → no damage applied
+
     nuclear: capacity
   
 2022-FR-nucl_dmg_dis:
@@ -21,8 +20,8 @@
     renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
   damage:
     # damage values per technology:
-    #   capacity  → apply only during prepare_network (capacity optimization)
+    #   capacity  → apply only during prepare_network (capacity optimization), inherently also solves operations for damaged network.
     #   dispatch  → apply only during solve_operations_network_damaged (dispatch re-run)
-    #   true      → apply in both phases (legacy / backward compat)
+
     nuclear: dispatch
  
