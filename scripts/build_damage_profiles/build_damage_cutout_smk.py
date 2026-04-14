@@ -16,7 +16,6 @@ cutout : path for the feature-suffixed copy written to the custom subdirectory
 """
 
 import logging
-import shutil
 from pathlib import Path
 
 import atlite
@@ -28,13 +27,10 @@ features = snakemake.params.features
 
 src = Path(snakemake.input.cutout)
 dst = Path(snakemake.output.cutout)
-dst.parent.mkdir(parents=True, exist_ok=True)
 
-# Copy the source cutout to the destination
-shutil.copy2(src, dst)
+cutout = atlite.Cutout(path=src)
+derived = cutout.copy(dst)
 logger.info(f"Copied {src} → {dst}")
 
-# Prepare the extra features on the copy
-cutout_v2 = atlite.Cutout(path=dst)
-cutout_v2.prepare(features=features)
+derived.prepare(features=features)
 logger.info(f"Prepared features {features} on {dst}")
