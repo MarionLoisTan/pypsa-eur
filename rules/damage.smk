@@ -54,17 +54,16 @@ if scenarios:
     _damage_runs = {
         tech: [
             r for r, cfg in scenarios.items()
-            if (cfg or {}).get("damage", {}).get(tech, False)
+            if ((cfg or {}).get("damage") or {}).get(tech, False)
         ]
         for tech in _DAMAGE_PROFILE_PATTERNS
     }
     # Runs where any tech has damage applied at the dispatch phase.
-    # Includes "dispatch" and True (both phases).
     _dispatch_damage_runs = [
         r for r, cfg in scenarios.items()
         if any(
-            v in ("dispatch", True)
-            for v in (cfg or {}).get("damage", {}).values()
+            v == "dispatch"
+            for v in ((cfg or {}).get("damage") or {}).values()
         )
     ]
 else:
