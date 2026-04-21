@@ -3,6 +3,7 @@
 2022-FR-base:
   electricity:
     renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
 
 2022-FR-nucl_dmg_cap:
   electricity:
@@ -12,16 +13,11 @@
     #   capacity  → apply only during prepare_network (capacity optimization), inherently also solves operations for damaged network.
     #   dispatch  → apply only during solve_operations_network_damaged (dispatch re-run)
     #   False / None → no damage applied
-
     nuclear: capacity
   
 2022-FR-nucl_dmg_dis:
   electricity:
     renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
   damage:
-    # damage values per technology:
-    #   capacity  → apply only during prepare_network (capacity optimization), inherently also solves operations for damaged network.
-    #   dispatch  → apply only during solve_operations_network_damaged (dispatch re-run)
-
     nuclear: dispatch
  
