@@ -17,6 +17,9 @@ import xarray as xr
 logger = logging.getLogger(__name__)
 
 
+_VALID_PHASES = frozenset({"capacity", "dispatch"})
+
+
 def apply_damage_profiles(n, damage_config, snakemake_input, phase):
     """
     Apply time-varying damage profiles to n.generators_t.p_max_pu.
@@ -35,18 +38,23 @@ def apply_damage_profiles(n, damage_config, snakemake_input, phase):
     damage_config : dict
         e.g. {"nuclear": "capacity", "onwind": "dispatch"}.
         Values: "capacity" (apply only in prepare_network),
-                "dispatch" (apply only in solve_operations_network_damaged),
-                True (apply in both phases, legacy/backward compat).
+                "dispatch" (apply only in solve_operations_network_damaged).
+        Use false or null in YAML to disable a technology without removing the key.
     snakemake_input : snakemake.input  object with damage_{tech} attributes
     phase : str
         Either "capacity" or "dispatch" — identifies the calling script's phase.
     """
     for tech, enabled in (damage_config or {}).items():
-        if not enabled:
+        if enabled is False or enabled is None:
             continue
-        # String phase tag: skip if this call is for a different phase.
-        # True (bool) bypasses this check → applies in both phases (backward compat).
-        if isinstance(enabled, str) and enabled != phase:
+        if enabled not in _VALID_PHASES:
+            raise ValueError(
+                f"damage.{tech}: invalid value {enabled!r} "
+                f"({type(enabled).__name__}). "
+                f"Must be 'capacity' or 'dispatch'. "
+                f"Use false or null to disable."
+            )
+        if enabled != phase:
             continue
 
         input_key = f"damage_{tech}"

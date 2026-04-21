@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: MIT
 
+# There are additional collecting or convenience rules in damage.smk, 
+# the reasoning being to try keep as much of the additional rules for the damage features in one smk file.
 
 localrules:
     all,

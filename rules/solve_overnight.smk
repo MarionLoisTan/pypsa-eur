@@ -53,9 +53,10 @@ rule solve_operations_network_damaged_sector:
             "sector", "co2_sequestration_potential", default=200
         ),
         custom_extra_functionality=input_custom_extra_functionality,
+        damage=config_provider("damage", default={}),
     input:
+        unpack(input_damage_profiles),
         network=RESULTS + "networks/base_s_{clusters}_{opts}_{sector_opts}_{planning_horizons}.nc",
-        damaged_profile=ancient(resources("damage_profiles/profile_{clusters}_onwind_damaged.nc"))
     output:
         network=RESULTS + "networks/base_s_{clusters}_{opts}_{sector_opts}_{planning_horizons}_damaged-dispatch.nc",
     log:

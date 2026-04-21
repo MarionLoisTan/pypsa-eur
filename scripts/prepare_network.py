@@ -40,6 +40,7 @@ from scripts._helpers import (
     update_config_from_wildcards,
 )
 from scripts.add_electricity import set_transmission_costs
+from scripts.build_damage_profiles._apply import apply_damage_profiles
 
 # Allow for PyPSA versions <0.35
 if PYPSA_V1:
@@ -365,7 +366,6 @@ if __name__ == "__main__":
         only_crossborder = snakemake.params.autarky["by_country"]
         enforce_autarky(n, only_crossborder=only_crossborder)
     
-    from scripts.build_damage_profiles._apply import apply_damage_profiles
     apply_damage_profiles(n, snakemake.params.damage, snakemake.input, phase="capacity")
                 
     n.meta = dict(snakemake.config, **dict(wildcards=dict(snakemake.wildcards)))
