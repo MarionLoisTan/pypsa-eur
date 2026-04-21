@@ -25,30 +25,13 @@ from scripts.solve_network import (
 logger = logging.getLogger(__name__)
 
 
-if __name__ == "__main__":
-    if "snakemake" not in globals():
-        from scripts._helpers import mock_snakemake
-
-        snakemake = mock_snakemake(
-            "solve_operations_network",
-            configfiles="test/config.electricity.yaml",
-            opts="",
-            clusters="5",
-            sector_opts="",
-            planning_horizons="",
-        )
-
-    configure_logging(snakemake)  # pylint: disable=E0606
-    set_scenario_config(snakemake)
-    update_config_from_wildcards(snakemake.config, snakemake.wildcards)
-
+def run_operations(n, snakemake):
+    """Fix capacities, prepare, solve dispatch-only, and export the network."""
     solve_opts = snakemake.params.options
     cf_solving = snakemake.params.solving["options"]
+    planning_horizons = snakemake.wildcards.get("planning_horizons", None)
 
     np.random.seed(solve_opts.get("seed", 123))
-
-    n = pypsa.Network(snakemake.input.network)
-    planning_horizons = snakemake.wildcards.get("planning_horizons", None)
 
     # Fix capacities from previous optimization
     n.optimize.fix_optimal_capacities()
@@ -95,3 +78,24 @@ if __name__ == "__main__":
 
     n.meta = dict(snakemake.config, **dict(wildcards=dict(snakemake.wildcards)))
     n.export_to_netcdf(snakemake.output.network)
+
+
+if __name__ == "__main__":
+    if "snakemake" not in globals():
+        from scripts._helpers import mock_snakemake
+
+        snakemake = mock_snakemake(
+            "solve_operations_network",
+            configfiles="test/config.electricity.yaml",
+            opts="",
+            clusters="5",
+            sector_opts="",
+            planning_horizons="",
+        )
+
+    configure_logging(snakemake)  # pylint: disable=E0606
+    set_scenario_config(snakemake)
+    update_config_from_wildcards(snakemake.config, snakemake.wildcards)
+
+    n = pypsa.Network(snakemake.input.network)
+    run_operations(n, snakemake)
