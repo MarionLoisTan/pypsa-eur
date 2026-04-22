@@ -3,14 +3,11 @@
 cutout_dir: /groups/EXTREMES/cutouts
 
 cutout_names:                           # optional: omit to process ALL .nc files in cutout_dir
-  # - europe-2018-era5
-  # - europe-2019-era5
-  # - europe-2020-era5
-  - europe-2021-era5
-  # - europe-2022-era5
-  # - europe-2023-era5
-  # - europe-2024-era5
-  # - europe-2025-era5
+  - europe-2018-era5
+  - europe-2019-era5
+  - europe-2020-era5
+  - europe-2022-era5
+  - europe-2023-era5
   
 features:
   - wind_gust
