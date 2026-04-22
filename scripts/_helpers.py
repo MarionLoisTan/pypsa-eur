@@ -7,6 +7,7 @@ import copy
 import logging
 import os
 import re
+import sys
 import time
 from collections.abc import Callable
 from functools import partial, wraps
@@ -23,6 +24,13 @@ import xarray as xr
 import yaml
 from snakemake.utils import update_config
 from tqdm import tqdm
+
+# Ensure pyproj can locate the PROJ database in multiprocessing workers.
+# Derived from sys.executable so it works in pixi/conda envs without requiring
+# PROJ_DATA to be set externally. setdefault preserves any explicit user override.
+_proj_data = Path(sys.executable).parent.parent / "share" / "proj"
+if _proj_data.exists():
+    os.environ.setdefault("PROJ_DATA", str(_proj_data))
 
 logger = logging.getLogger(__name__)
 
