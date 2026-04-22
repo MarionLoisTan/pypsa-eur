@@ -113,7 +113,7 @@ def approximate_missing_eia_stats(
     eia_stats: pd.DataFrame, runoff_fn: str, countries: list[str]
 ) -> pd.DataFrame:
     runoff = pd.read_csv(runoff_fn, index_col=0, parse_dates=True)[countries]
-    runoff = runoff.groupby(runoff.index.year).sum().index
+    runoff = runoff.groupby(runoff.index.year).sum()
 
     # fix outliers; exceptional floods in 1977-1979 in ES & PT
     if "ES" in runoff:
@@ -198,7 +198,8 @@ if __name__ == "__main__":
     if norm_year:
         eia_stats.loc[years_in_time] = eia_stats.loc[norm_year]
     elif missing_years.any():
-        eia_stats.loc[missing_years] = eia_stats.median()
+        for year in missing_years:
+            eia_stats.loc[year] = eia_stats.median()
 
     inflow = cutout.runoff(
         shapes=country_shapes,
