@@ -1128,7 +1128,7 @@ adjustments:
 
 # docs in https://pypsa-eur.readthedocs.io/en/latest/configuration.html#solving
 solving:
-  tmpdir: '/tmp'
+  # tmpdir: '/tmp'
   options:
     clip_p_max_pu: 0.01
     load_shedding: false
