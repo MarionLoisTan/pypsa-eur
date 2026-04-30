@@ -101,4 +101,4 @@ rule solve_operations_network_damaged_elec:
     shadow:
         shadow_config
     script:
-        "../scripts/solve_operations_network_damaged.py"
+        "../scripts/solve_operations_network.py"
