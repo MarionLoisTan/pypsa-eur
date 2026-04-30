@@ -73,4 +73,4 @@ rule solve_operations_network_damaged_sector:
     conda:
         "../envs/environment.yaml"
     script:
-        "../scripts/solve_operations_network_damaged.py"
+        "../scripts/solve_operations_network.py"

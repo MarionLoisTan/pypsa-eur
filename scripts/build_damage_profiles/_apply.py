@@ -6,7 +6,7 @@
 Shared utility for applying technology damage profiles to a PyPSA network.
 
 Used by both prepare_network.py (capacity planning) and
-solve_operations_network_damaged.py (dispatch re-optimisation).
+solve_operations_network.py (dispatch re-optimisation).
 """
 
 import logging
@@ -38,7 +38,7 @@ def apply_damage_profiles(n, damage_config, snakemake_input, phase):
     damage_config : dict
         e.g. {"nuclear": "capacity", "onwind": "dispatch"}.
         Values: "capacity" (apply only in prepare_network),
-                "dispatch" (apply only in solve_operations_network_damaged).
+                "dispatch" (apply only in solve_operations_network).
         Use false or null in YAML to disable a technology without removing the key.
     snakemake_input : snakemake.input  object with damage_{tech} attributes
     phase : str
@@ -105,3 +105,65 @@ def apply_damage_profiles(n, damage_config, snakemake_input, phase):
 
         n.generators_t.p_max_pu[gens.index] = current.multiply(gen_damage)
         logger.info(f"Applied {tech} damage profile to {len(gens)} generators.")
+
+
+def add_load_shedding(n):
+    """Add load shedding generators — detects electricity-only vs sector-coupled."""
+    has_heat = any(n.buses.carrier.str.contains("heat", na=False))
+
+    if has_heat:
+        nodes_LV = n.buses.query('carrier == "low voltage"').index
+        nodes_heat1 = n.buses.query('carrier == "rural heat"').index
+        nodes_heat2 = n.buses.query('carrier == "urban central heat"').index
+        nodes_heat3 = n.buses.query('carrier == "urban decentral heat"').index
+
+        n.add("Carrier", "load_el")
+        n.add("Carrier", "load_heat")
+
+        for bus in nodes_LV:
+            n.add("Generator",
+                  bus + " load shedding",
+                  bus=bus,
+                  carrier="load_el",
+                  marginal_cost=1e4,
+                  p_nom_extendable=True,
+                  capital_cost=0)
+
+        for bus in nodes_heat1:
+            n.add("Generator",
+                  bus + " load shedding",
+                  bus=bus,
+                  carrier="load_heat",
+                  marginal_cost=1e4,
+                  p_nom_extendable=True,
+                  capital_cost=0)
+
+        for bus in nodes_heat2:
+            n.add("Generator",
+                  bus + " load shedding",
+                  bus=bus,
+                  carrier="load_heat",
+                  marginal_cost=1e4,
+                  p_nom_extendable=True,
+                  capital_cost=0)
+
+        for bus in nodes_heat3:
+            n.add("Generator",
+                  bus + " load shedding",
+                  bus=bus,
+                  carrier="load_heat",
+                  marginal_cost=1e4,
+                  p_nom_extendable=True,
+                  capital_cost=0)
+    else:
+        n.add("Carrier", "load_shedding")
+        for bus in n.buses.index:
+            n.add("Generator",
+                  bus + " load shedding",
+                  bus=bus,
+                  carrier="load_shedding",
+                  marginal_cost=1e4,
+                  p_nom_extendable=True,
+                  capital_cost=0)
+
+    return n
