@@ -146,7 +146,13 @@ rule build_nuclear_damage_profile:
         snapshots=config_provider("snapshots"),
         drop_leap_day=config_provider("enable", "drop_leap_day"),
     input:
-        cutout=lambda w: input_cutout(w),
+        cutout=lambda w: input_cutout(
+            w,
+            cutout_names=[
+                name for name in config_provider("atlite", "cutouts")(w).keys()
+                if name not in config.get("atlite", {}).get("cutouts", {})
+            ],
+        ),
         powerplants=resources("powerplants_s_{clusters}.csv"),
     output:
         profile=resources("damage_profiles/nuclear_damage_{clusters}.nc"),
@@ -176,7 +182,13 @@ rule build_nuclear_plant_damage_profile:
         snapshots=config_provider("snapshots"),
         drop_leap_day=config_provider("enable", "drop_leap_day"),
     input:
-        cutout=lambda w: input_cutout(w),
+        cutout=lambda w: input_cutout(
+            w,
+            cutout_names=[
+                name for name in config_provider("atlite", "cutouts")(w).keys()
+                if name not in config.get("atlite", {}).get("cutouts", {})
+            ],
+        ),
         powerplants=resources(
             "powerplants_s_" + str(config["scenario"]["clusters"][0]) + ".csv"
         ),

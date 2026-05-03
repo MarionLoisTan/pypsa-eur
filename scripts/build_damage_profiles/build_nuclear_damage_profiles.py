@@ -187,8 +187,18 @@ if __name__ == "__main__":
             Path(snakemake.output.profile).parent / "nuclear_damage_plants.nc"
         )
 
-    cutout = atlite.Cutout(path=snakemake.input.cutout)
-    cutout_data = cutout.data
+    cutout_paths = (
+        snakemake.input.cutout
+        if isinstance(snakemake.input.cutout, list)
+        else [snakemake.input.cutout]
+    )
+    if len(cutout_paths) == 1:
+        cutout_data = atlite.Cutout(path=cutout_paths[0]).data
+    else:
+        cutout_data = xr.concat(
+            [atlite.Cutout(path=p).data for p in cutout_paths],
+            dim="time",
+        )
 
     # --- Step 1: per-plant profiles (always computed and saved) ---
     plant_profiles = {}
