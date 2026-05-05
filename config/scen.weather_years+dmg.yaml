@@ -1,0 +1,580 @@
+
+weather_year_2018_nuc_cap:
+  snapshots:
+    start: "2018-06-01 00:00"
+    end: "2019-05-31 23:00"
+    inclusive: both
+  atlite:
+    cutouts:
+      europe-2018-era5_fg10_lmlt:
+        time:
+        - '2018'
+        - '2018'
+      europe-2019-era5_fg10_lmlt:
+        time:
+        - '2019'
+        - '2019'
+  renewable:
+    onwind:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+    offwind-ac:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+    offwind-dc:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+    offwind-float:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+    solar:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+    solar-hsat:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+    hydro:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+  solar_thermal:
+    cutout:
+    - europe-2018-era5_fg10_lmlt
+    - europe-2019-era5_fg10_lmlt
+  lines:
+    dynamic_line_rating:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
+    nuclear: capacity
+
+weather_year_2018_nuc_dis:
+  snapshots:
+    start: "2018-06-01 00:00"
+    end: "2019-05-31 23:00"
+    inclusive: both
+  atlite:
+    cutouts:
+      europe-2018-era5_fg10_lmlt:
+        time:
+        - '2018'
+        - '2018'
+      europe-2019-era5_fg10_lmlt:
+        time:
+        - '2019'
+        - '2019'
+  renewable:
+    onwind:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+    offwind-ac:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+    offwind-dc:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+    offwind-float:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+    solar:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+    solar-hsat:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+    hydro:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+  solar_thermal:
+    cutout:
+    - europe-2018-era5_fg10_lmlt
+    - europe-2019-era5_fg10_lmlt
+  lines:
+    dynamic_line_rating:
+      cutout:
+      - europe-2018-era5_fg10_lmlt
+      - europe-2019-era5_fg10_lmlt
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
+    nuclear: dispatch
+
+weather_year_2019_nuc_cap:
+  snapshots:
+    start: "2019-06-01 00:00"
+    end: "2020-05-31 23:00"
+    inclusive: both
+  atlite:
+    cutouts:
+      europe-2019-era5_fg10_lmlt:
+        time:
+        - '2019'
+        - '2019'
+      europe-2020-era5_fg10_lmlt:
+        time:
+        - '2020'
+        - '2020'
+  renewable:
+    onwind:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+    offwind-ac:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+    offwind-dc:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+    offwind-float:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+    solar:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+    solar-hsat:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+    hydro:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+  solar_thermal:
+    cutout:
+    - europe-2019-era5_fg10_lmlt
+    - europe-2020-era5_fg10_lmlt
+  lines:
+    dynamic_line_rating:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
+    nuclear: capacity
+
+weather_year_2019_nuc_dis:
+  snapshots:
+    start: "2019-06-01 00:00"
+    end: "2020-05-31 23:00"
+    inclusive: both
+  atlite:
+    cutouts:
+      europe-2019-era5_fg10_lmlt:
+        time:
+        - '2019'
+        - '2019'
+      europe-2020-era5_fg10_lmlt:
+        time:
+        - '2020'
+        - '2020'
+  renewable:
+    onwind:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+    offwind-ac:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+    offwind-dc:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+    offwind-float:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+    solar:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+    solar-hsat:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+    hydro:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+  solar_thermal:
+    cutout:
+    - europe-2019-era5_fg10_lmlt
+    - europe-2020-era5_fg10_lmlt
+  lines:
+    dynamic_line_rating:
+      cutout:
+      - europe-2019-era5_fg10_lmlt
+      - europe-2020-era5_fg10_lmlt
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
+    nuclear: dispatch
+
+weather_year_2020_nuc_cap:
+  snapshots:
+    start: "2020-06-01 00:00"
+    end: "2021-05-31 23:00"
+    inclusive: both
+  atlite:
+    cutouts:
+      europe-2020-era5_fg10_lmlt:
+        time:
+        - '2020'
+        - '2020'
+      europe-2021-era5_fg10_lmlt:
+        time:
+        - '2021'
+        - '2021'
+  renewable:
+    onwind:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+    offwind-ac:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+    offwind-dc:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+    offwind-float:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+    solar:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+    solar-hsat:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+    hydro:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+  solar_thermal:
+    cutout:
+    - europe-2020-era5_fg10_lmlt
+    - europe-2021-era5_fg10_lmlt
+  lines:
+    dynamic_line_rating:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
+    nuclear: capacity
+
+weather_year_2020_nuc_dis:
+  snapshots:
+    start: "2020-06-01 00:00"
+    end: "2021-05-31 23:00"
+    inclusive: both
+  atlite:
+    cutouts:
+      europe-2020-era5_fg10_lmlt:
+        time:
+        - '2020'
+        - '2020'
+      europe-2021-era5_fg10_lmlt:
+        time:
+        - '2021'
+        - '2021'
+  renewable:
+    onwind:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+    offwind-ac:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+    offwind-dc:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+    offwind-float:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+    solar:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+    solar-hsat:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+    hydro:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+  solar_thermal:
+    cutout:
+    - europe-2020-era5_fg10_lmlt
+    - europe-2021-era5_fg10_lmlt
+  lines:
+    dynamic_line_rating:
+      cutout:
+      - europe-2020-era5_fg10_lmlt
+      - europe-2021-era5_fg10_lmlt
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
+    nuclear: dispatch
+
+weather_year_2021_nuc_cap:
+  snapshots:
+    start: "2021-06-01 00:00"
+    end: "2022-05-31 23:00"
+    inclusive: both
+  atlite:
+    cutouts:
+      europe-2021-era5_fg10_lmlt:
+        time:
+        - '2021'
+        - '2021'
+      europe-2022-era5_fg10_lmlt:
+        time:
+        - '2022'
+        - '2022'
+  renewable:
+    onwind:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+    offwind-ac:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+    offwind-dc:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+    offwind-float:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+    solar:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+    solar-hsat:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+    hydro:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+  solar_thermal:
+    cutout:
+    - europe-2021-era5_fg10_lmlt
+    - europe-2022-era5_fg10_lmlt
+  lines:
+    dynamic_line_rating:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
+    nuclear: capacity
+
+weather_year_2021_nuc_dis:
+  snapshots:
+    start: "2021-06-01 00:00"
+    end: "2022-05-31 23:00"
+    inclusive: both
+  atlite:
+    cutouts:
+      europe-2021-era5_fg10_lmlt:
+        time:
+        - '2021'
+        - '2021'
+      europe-2022-era5_fg10_lmlt:
+        time:
+        - '2022'
+        - '2022'
+  renewable:
+    onwind:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+    offwind-ac:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+    offwind-dc:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+    offwind-float:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+    solar:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+    solar-hsat:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+    hydro:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+  solar_thermal:
+    cutout:
+    - europe-2021-era5_fg10_lmlt
+    - europe-2022-era5_fg10_lmlt
+  lines:
+    dynamic_line_rating:
+      cutout:
+      - europe-2021-era5_fg10_lmlt
+      - europe-2022-era5_fg10_lmlt
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
+    nuclear: dispatch
+
+weather_year_2022_nuc_cap:
+  snapshots:
+    start: "2022-06-01 00:00"
+    end: "2023-05-31 23:00"
+    inclusive: both
+  atlite:
+    cutouts:
+      europe-2022-era5_fg10_lmlt:
+        time:
+        - '2022'
+        - '2022'
+      europe-2023-era5_fg10_lmlt:
+        time:
+        - '2023'
+        - '2023'
+  renewable:
+    onwind:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+    offwind-ac:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+    offwind-dc:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+    offwind-float:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+    solar:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+    solar-hsat:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+    hydro:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+  solar_thermal:
+    cutout:
+    - europe-2022-era5_fg10_lmlt
+    - europe-2023-era5_fg10_lmlt
+  lines:
+    dynamic_line_rating:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
+    nuclear: capacity
+
+weather_year_2022_nuc_dis:
+  snapshots:
+    start: "2022-06-01 00:00"
+    end: "2023-05-31 23:00"
+    inclusive: both
+  atlite:
+    cutouts:
+      europe-2022-era5_fg10_lmlt:
+        time:
+        - '2022'
+        - '2022'
+      europe-2023-era5_fg10_lmlt:
+        time:
+        - '2023'
+        - '2023'
+  renewable:
+    onwind:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+    offwind-ac:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+    offwind-dc:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+    offwind-float:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+    solar:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+    solar-hsat:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+    hydro:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+  solar_thermal:
+    cutout:
+    - europe-2022-era5_fg10_lmlt
+    - europe-2023-era5_fg10_lmlt
+  lines:
+    dynamic_line_rating:
+      cutout:
+      - europe-2022-era5_fg10_lmlt
+      - europe-2023-era5_fg10_lmlt
+  electricity:
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  damage:
+    nuclear: dispatch
