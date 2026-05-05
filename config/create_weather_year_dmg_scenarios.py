@@ -8,172 +8,152 @@
 if "snakemake" in globals():
     filename = snakemake.output[0]
 else:
-    # filename = "scen.weather_years+dmg.yaml"
-    filename = "scen.summer_years+dmg.yaml"
+    filename = "scen.weather_years+nucl_win_dmg.yaml"
+    # filename = "scen.summer_years+dmg.yaml"
 
 # --- Configuration -----------------------------------------------------------
-CUTOUT_NAME = "europe-2018-2023-era5_fg10_lmlt"
-first_year = 2018
+CUTOUT_TEMPLATE = "europe-{year}-era5_fg10_lmlt"
+first_year = 2022
 last_year = 2022  # last scenario spans last_year → last_year+1
+
+SUMMER_MODE = False  # True: Jun–Aug snapshots; False: Jun–May (full year)
+
+# Each key becomes the scenario name suffix; the value maps carrier → damage mode.
+# Multiple carriers in one entry produce a single scenario with multiple damage lines.
+DAMAGE_CONFIGS = {
+    "nuc_cap": {"nuclear": "capacity"},
+    "nuc_dis": {"nuclear": "dispatch"},
+    "win_cap": {"onwind": "capacity", "offwind-ac": "capacity", "offwind-dc": "capacity", "offwind-float": "capacity"},
+    "win_dis": {"onwind": "dispatch", "offwind-ac": "dispatch", "offwind-dc": "dispatch", "offwind-float": "dispatch"},
+    # examples of further combinations:
+    # "onwind_cap": {"onwind": "capacity"},
+    # "nuc_cap_onwind_cap": {"nuclear": "capacity", "onwind": "capacity"},
+}
+
+
+# --- Helper ------------------------------------------------------------------
+
+def format_damage(damage_dict):
+    lines = ["  damage:"]
+    for carrier, mode in damage_dict.items():
+        lines.append(f"    {carrier}: {mode}")
+    return "\n".join(lines)
+
 
 # --- Templates ---------------------------------------------------------------
 
-template_cap = """
-weather_year_{year}_dmg_cap:
+TEMPLATE_FULL = """
+weather_year_{year}_{suffix}:
   snapshots:
     start: "{year}-06-01 00:00"
     end: "{end_year}-05-31 23:00"
     inclusive: both
   atlite:
     cutouts:
-      {cutout}:
+      {cutout_a}:
         time:
         - '{year}'
+        - '{year}'
+      {cutout_b}:
+        time:
+        - '{end_year}'
         - '{end_year}'
   renewable:
     onwind:
-      cutout: {cutout}
+      cutout:
+      - {cutout_a}
+      - {cutout_b}
     offwind-ac:
-      cutout: {cutout}
+      cutout:
+      - {cutout_a}
+      - {cutout_b}
     offwind-dc:
-      cutout: {cutout}
+      cutout:
+      - {cutout_a}
+      - {cutout_b}
     offwind-float:
-      cutout: {cutout}
+      cutout:
+      - {cutout_a}
+      - {cutout_b}
     solar:
-      cutout: {cutout}
+      cutout:
+      - {cutout_a}
+      - {cutout_b}
     solar-hsat:
-      cutout: {cutout}
+      cutout:
+      - {cutout_a}
+      - {cutout_b}
     hydro:
-      cutout: {cutout}
+      cutout:
+      - {cutout_a}
+      - {cutout_b}
   solar_thermal:
-    cutout: {cutout}
+    cutout:
+    - {cutout_a}
+    - {cutout_b}
   lines:
     dynamic_line_rating:
-      cutout: {cutout}
+      cutout:
+      - {cutout_a}
+      - {cutout_b}
   electricity:
     renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
-  damage:
-    nuclear: capacity
+{damage_block}
 """
 
-template_dis = """
-weather_year_{year}_dmg_dis:
-  snapshots:
-    start: "{year}-06-01 00:00"
-    end: "{end_year}-05-31 23:00"
-    inclusive: both
-  atlite:
-    cutouts:
-      {cutout}:
-        time:
-        - '{year}'
-        - '{end_year}'
-  renewable:
-    onwind:
-      cutout: {cutout}
-    offwind-ac:
-      cutout: {cutout}
-    offwind-dc:
-      cutout: {cutout}
-    offwind-float:
-      cutout: {cutout}
-    solar:
-      cutout: {cutout}
-    solar-hsat:
-      cutout: {cutout}
-    hydro:
-      cutout: {cutout}
-  solar_thermal:
-    cutout: {cutout}
-  lines:
-    dynamic_line_rating:
-      cutout: {cutout}
-  electricity:
-    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
-  damage:
-    nuclear: dispatch
-"""
-
-template_cap_summer = """
-weather_year_{year}_dmg_cap:
+TEMPLATE_SUMMER = """
+weather_year_{year}_{suffix}:
   snapshots:
     start: "{year}-06-01 00:00"
     end: "{year}-08-31 23:00"
     inclusive: both
   atlite:
     cutouts:
-      {cutout}:
+      {cutout_a}:
         time:
         - '{year}'
-
-  renewable:
-    onwind:
-      cutout: {cutout}
-    offwind-ac:
-      cutout: {cutout}
-    offwind-dc:
-      cutout: {cutout}
-    offwind-float:
-      cutout: {cutout}
-    solar:
-      cutout: {cutout}
-    solar-hsat:
-      cutout: {cutout}
-    hydro:
-      cutout: {cutout}
-  solar_thermal:
-    cutout: {cutout}
-  lines:
-    dynamic_line_rating:
-      cutout: {cutout}
-  electricity:
-    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
-  damage:
-    nuclear: capacity
-"""
-
-template_dis_summer = """
-weather_year_{year}_dmg_dis:
-  snapshots:
-    start: "{year}-06-01 00:00"
-    end: "{year}-08-31 23:00"
-    inclusive: both
-  atlite:
-    cutouts:
-      {cutout}:
-        time:
         - '{year}'
-
   renewable:
     onwind:
-      cutout: {cutout}
+      cutout: {cutout_a}
     offwind-ac:
-      cutout: {cutout}
+      cutout: {cutout_a}
     offwind-dc:
-      cutout: {cutout}
+      cutout: {cutout_a}
     offwind-float:
-      cutout: {cutout}
+      cutout: {cutout_a}
     solar:
-      cutout: {cutout}
+      cutout: {cutout_a}
     solar-hsat:
-      cutout: {cutout}
+      cutout: {cutout_a}
     hydro:
-      cutout: {cutout}
+      cutout: {cutout_a}
   solar_thermal:
-    cutout: {cutout}
+    cutout: {cutout_a}
   lines:
     dynamic_line_rating:
-      cutout: {cutout}
+      cutout: {cutout_a}
   electricity:
     renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
-  damage:
-    nuclear: dispatch
+{damage_block}
 """
 
 # --- Generate ----------------------------------------------------------------
 
+template = TEMPLATE_SUMMER if SUMMER_MODE else TEMPLATE_FULL
+
 with open(filename, "w") as f:
     for year in range(first_year, last_year + 1):
         end_year = year + 1
-        f.write(template_cap_summer.format(year=year, end_year=end_year, cutout=CUTOUT_NAME))
-        f.write(template_dis_summer.format(year=year, end_year=end_year, cutout=CUTOUT_NAME))
+        cutout_a = CUTOUT_TEMPLATE.format(year=year)
+        cutout_b = CUTOUT_TEMPLATE.format(year=end_year)
+        for suffix, damage_dict in DAMAGE_CONFIGS.items():
+            damage_block = format_damage(damage_dict)
+            f.write(template.format(
+                year=year,
+                end_year=end_year,
+                suffix=suffix,
+                cutout_a=cutout_a,
+                cutout_b=cutout_b,
+                damage_block=damage_block,
+            ))
