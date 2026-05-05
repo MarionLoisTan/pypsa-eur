@@ -291,6 +291,28 @@ if __name__ == "__main__":
         synthetic_load = synthetic_load.loc[snapshots, countries]
         load = load.combine_first(synthetic_load)
 
+    # Second pass: re-apply neighbor scaling for countries absent from synthetic
+    # data (XK, and AL/BA/MK in case they are also missing). Runs after synthetic
+    # so that RS/ME/HR are already filled for post-2020 snapshot years.
+    if snakemake.params.load["manual_adjustments"]:
+        all_countries = snakemake.params.countries
+        if "XK" in all_countries and "RS" in load.columns:
+            filler = load["RS"] * (4.8 / 27.0)
+            load["XK"] = load["XK"].fillna(filler) if "XK" in load.columns else filler
+        if "AL" in all_countries:
+            src = "ME" if "ME" in load.columns else ("MK" if "MK" in load.columns else None)
+            if src:
+                factor = 5.7 / 2.9 if src == "ME" else 4.1 / 7.4
+                filler = load[src] * factor
+                load["AL"] = load["AL"].fillna(filler) if "AL" in load.columns else filler
+        if "BA" in all_countries and "HR" in load.columns:
+            filler = load["HR"] * (11.0 / 16.2)
+            load["BA"] = load["BA"].fillna(filler) if "BA" in load.columns else filler
+        if "MK" in all_countries and "ME" in load.columns:
+            if "MK" not in load.columns or load["MK"].isna().sum() > len(load) / 2:
+                filler = load["ME"] * (6.7 / 2.9)
+                load["MK"] = load["MK"].fillna(filler) if "MK" in load.columns else filler
+
     assert not load.isna().any().any(), (
         "Load data contains nans. Adjust the parameters "
         "`time_shift_for_large_gaps` or modify the `manual_adjustment` function "
