@@ -70,6 +70,12 @@ else:
     _damage_runs = {tech: [] for tech in _DAMAGE_PROFILE_PATTERNS}
     _dispatch_damage_runs = []
 
+_wind_damage_runs = sorted(set(
+    r
+    for carrier in ["onwind", "offwind-ac", "offwind-dc"]
+    for r in _damage_runs.get(carrier, [])
+))
+
 
 rule build_all_damage_cutouts:
     """
@@ -203,6 +209,64 @@ rule build_nuclear_plant_damage_profile:
         mem_mb=4000,
     script:
         "../scripts/build_damage_profiles/build_nuclear_damage_profiles.py"
+
+rule build_all_wind_damage_profiles:
+    """
+    Convenience target: build bus-level wind damage profiles for all wind carriers
+    (onwind, offwind-ac, offwind-dc) and all cluster values in config.scenario.clusters.
+
+    Usage:
+        snakemake build_all_wind_damage_profiles --configfile config/config.yaml -j4
+    """
+    input:
+        expand(
+            resources("damage_profiles/{carrier}_damage_{clusters}.nc"),
+            carrier=["onwind", "offwind-ac", "offwind-dc"],
+            clusters=config["scenario"]["clusters"],
+            run=_wind_damage_runs,
+        ),
+
+
+rule build_wind_damage_profile:
+    """
+    Build hourly wind damage profiles aggregated to bus level.
+
+    Uses 10 m wind gust speed (wnd_gust10m) from the damage cutout and
+    layout-weighted averaging (CF_mean × area × availability) over grid cells
+    per bus — consistent with the spatial aggregation in build_renewable_profiles.py.
+    Output: resources/damage_profiles/{carrier}_damage_{clusters}.nc, variable
+    'profile', dims (time, bus), values in [0, 1] (1 = fully operational).
+
+    Can be applied in capacity optimisation (damage.{carrier}: capacity in scenario
+    config) or dispatch re-optimisation (damage.{carrier}: dispatch) via _apply.py.
+    """
+    wildcard_constraints:
+        carrier="onwind|offwind-ac|offwind-dc|offwind-float",
+    params:
+        turbine=lambda w: config["renewable"][w.carrier]["resource"]["turbine"],
+        snapshots=config_provider("snapshots"),
+        drop_leap_day=config_provider("enable", "drop_leap_day"),
+    input:
+        cutout=lambda w: input_cutout(
+            w,
+            cutout_names=[
+                name for name in config_provider("atlite", "cutouts")(w).keys()
+                if name not in config.get("atlite", {}).get("cutouts", {})
+            ],
+        ),
+        availability=resources("availability_matrix_{clusters}_{carrier}.nc"),
+    output:
+        profile=resources("damage_profiles/{carrier}_damage_{clusters}.nc"),
+    log:
+        logs("build_wind_damage_profile_{carrier}_{clusters}.log"),
+    benchmark:
+        benchmarks("build_wind_damage_profile_{carrier}_{clusters}"),
+    threads: config["atlite"].get("nprocesses", 4)
+    resources:
+        mem_mb=config["atlite"].get("nprocesses", 4) * 2000,
+    script:
+        "../scripts/build_damage_profiles/build_wind_damage_profiles.py"
+
 
 rule solve_all_damaged_dispatch:
     """
