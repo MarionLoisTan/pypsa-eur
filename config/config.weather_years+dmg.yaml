@@ -6,11 +6,12 @@
 tutorial: true
 
 run:
-  prefix: "FR-summer_years+dmg"
+  name: "all"
+  prefix: "FR-weather_years+dmg"
 
   scenarios:
     enable: true
-    file: "config/scen.summer_years+dmg.yaml"
+    file: "config/scen.weather_years+nucl_win_dmg.yaml"
   disable_progressbar: true
   shared_resources:
     policy: false
@@ -48,7 +49,7 @@ data: # added section due to forked repo, see issue #2016 in repo
     version: unknown
 
 atlite:
-  default_cutout: europe-2018-2023-era5_fg10_lmlt
+  default_cutout: europe-2022-era5_fg10_lmlt
 
 
 renewable:
