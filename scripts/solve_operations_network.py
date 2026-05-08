@@ -80,7 +80,7 @@ if __name__ == "__main__":
     rolling_horizon = cf_solving.get("rolling_horizon", False)
     mode = "rolling_horizon" if rolling_horizon else "single"
 
-    all_kwargs, _ = collect_kwargs(
+    model_kwargs, solve_kwargs = collect_kwargs(
         snakemake.config,
         snakemake.params.solving,
         planning_horizons,
@@ -97,10 +97,10 @@ if __name__ == "__main__":
     ) as mem:
         if rolling_horizon:
             logger.info("Solving operations network with rolling horizon...")
-            n.optimize.optimize_with_rolling_horizon(**all_kwargs)
+            n.optimize.optimize_with_rolling_horizon(**model_kwargs, **solve_kwargs)
         else:
             logger.info("Solving operations network...")
-            n.optimize(**all_kwargs)
+            n.optimize(**model_kwargs, **solve_kwargs)
 
     logger.info(f"Maximum memory usage: {mem.mem_usage}")
 
