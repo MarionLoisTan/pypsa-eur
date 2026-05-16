@@ -24,7 +24,7 @@ feature_shortcodes:        # ERA5 GRIB shortcode for each feature — used to na
 # Damage
 
 nuclear:
-  shutdown_water_temp: 303  # K — shutdown water temperature threshold (30°C + 273)
+  shutdown_water_temp: 301  # K — shutdown water temperature threshold (28°C + 273)
   design_water_temp: 293  # K — design water temperature (20°C + 273)
   shutdown_period: 24    # hours — shutdown period
 
