@@ -101,7 +101,7 @@ def _apply_layout(
             ),
         ),
         yaxis=dict(
-            title="Damage profile",
+            title="Availability",
             range=[-0.05, 1.05],
             tickformat=".0%",
             side="left",
@@ -174,7 +174,7 @@ def plot_plant_profile(
 
     primary = [
         go.Scatter(
-            x=time_index, y=damage_df[plant_name].values,
+            x=time_index, y=1 - damage_df[plant_name].values,
             mode="lines", name=plant_name,
             line=dict(color=_DAMAGE_SINGLE_COLOR, width=1.5),
             yaxis="y",
@@ -190,7 +190,7 @@ def plot_plant_profile(
     ]
     return _build_damage_figure(
         primary, secondary,
-        title=f"Nuclear damage profile with Water Temperature — {plant_name}",
+        title=f"Nuclear availability with Water Temperature — {plant_name}",
         time_index=time_index, width=width, height=height,
     )
 
@@ -246,7 +246,7 @@ def plot_bus_profile(
     if mode == "individual":
         for i, (_, row) in enumerate(bus_plants.iterrows()):
             primary.append(go.Scatter(
-                x=time_index, y=profiles[:, i],
+                x=time_index, y=1 - profiles[:, i],
                 mode="lines", name=row["Name"],
                 line=dict(color=_DAMAGE_COLORS[i % len(_DAMAGE_COLORS)], width=1.5),
                 yaxis="y",
@@ -254,7 +254,7 @@ def plot_bus_profile(
     else:
         weighted = np.average(profiles, axis=1, weights=capacities)
         primary.append(go.Scatter(
-            x=time_index, y=weighted,
+            x=time_index, y=1 - weighted,
             mode="lines", name=f"{bus_name} (cap-weighted)",
             line=dict(color=_DAMAGE_SINGLE_COLOR, width=2.0),
             yaxis="y",
@@ -288,7 +288,7 @@ def plot_bus_profile(
     mode_label = "individual plants" if mode == "individual" else "capacity-weighted aggregate"
     return _build_damage_figure(
         primary, secondary,
-        title=f"Nuclear damage profiles with Water Temperature — bus {bus_name} ({mode_label})",
+        title=f"Nuclear availability with Water Temperature — bus {bus_name} ({mode_label})",
         time_index=time_index, width=width, height=height,
     )
 

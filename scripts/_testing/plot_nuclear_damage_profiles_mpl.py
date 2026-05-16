@@ -62,7 +62,7 @@ def _apply_mpl_layout(
     ax1.tick_params(axis="x", which="minor", length=3)
 
     ax1.set_xlabel("Time")
-    ax1.set_ylabel("Damage profile (0 = off, 1 = full capacity)")
+    ax1.set_ylabel("Availability (0 = shutdown, 1 = full capacity)")
     ax1.set_ylim(-0.05, 1.05)
     ax1.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
 
@@ -127,7 +127,7 @@ def plot_plant_profile(
     fig, ax1, ax2 = _make_dual_axis_fig(figsize)
 
     ax1.plot(
-        time_index, damage_df[plant_name].values,
+        time_index, 1 - damage_df[plant_name].values,
         color=_DAMAGE_SINGLE_COLOR, linewidth=1.5, label=plant_name, zorder=4,
     )
     ax2.plot(
@@ -137,7 +137,7 @@ def plot_plant_profile(
     _add_threshold_lines(ax2)
     _apply_mpl_layout(
         ax1, ax2,
-        title=f"Nuclear damage profile with Water Temperature — {plant_name}",
+        title=f"Nuclear availability with Water Temperature — {plant_name}",
         time_index=time_index,
     )
     _combine_legends(ax1, ax2)
@@ -195,13 +195,13 @@ def plot_bus_profile(
         for i, (_, row) in enumerate(bus_plants.iterrows()):
             color = _DAMAGE_COLORS[i % len(_DAMAGE_COLORS)]
             ax1.plot(
-                time_index, profiles[:, i],
+                time_index, 1 - profiles[:, i],
                 color=color, linewidth=1.5, label=row["Name"], alpha=0.9, zorder=4,
             )
     else:
         weighted = np.average(profiles, axis=1, weights=capacities)
         ax1.plot(
-            time_index, weighted,
+            time_index, 1 - weighted,
             color=_DAMAGE_SINGLE_COLOR, linewidth=2.0,
             label=f"{bus_name} (cap-weighted)", zorder=4,
         )
@@ -222,7 +222,7 @@ def plot_bus_profile(
     mode_label = "individual plants" if mode == "individual" else "capacity-weighted aggregate"
     _apply_mpl_layout(
         ax1, ax2,
-        title=f"Nuclear damage profiles with Water Temperature — bus {bus_name} ({mode_label})",
+        title=f"Nuclear availability with Water Temperature — bus {bus_name} ({mode_label})",
         time_index=time_index,
     )
     _combine_legends(ax1, ax2)

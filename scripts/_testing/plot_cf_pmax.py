@@ -98,6 +98,7 @@ def plot_p_max_pu(
     start: str | None = None,
     end: str | None = None,
     figsize: tuple = (8, 4),
+    overlay: bool = False,
 ):
     """
     Matplotlib line plot of p_max_pu. See ``build_p_max_pu_df`` for parameter docs.
@@ -107,6 +108,8 @@ def plot_p_max_pu(
     fig, ax : matplotlib Figure and Axes
     """
     df = build_p_max_pu_df(networks, carriers, by_bus=by_bus, start=start, end=end)
+    if overlay:
+        df.index = df.index.map(lambda t: t.replace(year=2000))
 
     color_cycle = cycle(_DAMAGE_COLORS)
     fig, ax = plt.subplots(figsize=figsize)
@@ -139,6 +142,7 @@ def iplot_p_max_pu(
     start: str | None = None,
     end: str | None = None,
     open_in_browser: bool = False,
+    overlay: bool = False,
 ):
     """
     Interactive Plotly line plot of p_max_pu. See ``build_p_max_pu_df`` for parameter docs.
@@ -147,10 +151,30 @@ def iplot_p_max_pu(
     -------
     plotly.graph_objects.Figure
     """
-    import plotly.express as px
+    import plotly.graph_objects as go
 
     df = build_p_max_pu_df(networks, carriers, by_bus=by_bus, start=start, end=end)
-    fig = px.line(df, y=df.columns.tolist(), labels={"value": "p_max_pu", "index": "snapshot"})
+    if overlay:
+        df.index = df.index.map(lambda t: t.replace(year=2000))
+    scenario_colors = {
+        label: _DAMAGE_COLORS[i % len(_DAMAGE_COLORS)] for i, label in enumerate(networks)
+    }
+
+    fig = go.Figure()
+    for col in df.columns:
+        label = col.split(" | ")[0]
+        fig.add_trace(go.Scatter(
+            x=df.index, y=df[col], name=col,
+            mode="lines",
+            line=dict(color=scenario_colors[label], width=1.5),
+            connectgaps=False,
+        ))
+
+    fig.update_layout(
+        hovermode="x unified",
+        yaxis=dict(range=[0, 1], title="p_max_pu"),
+        xaxis_title="snapshot",
+    )
     if open_in_browser:
         show_fullscreen(fig)
     return fig
@@ -218,7 +242,11 @@ def build_cf_pmax_df(
         if len(gens) == 0:
             continue
 
-        snapshots = cf.index
+        # Use the network's own snapshot index to avoid alignment failures when
+        # cf.index was reconstructed from statistics column label strings.
+        net_snapshots = n.generators_t.p_max_pu.index if not n.generators_t.p_max_pu.empty \
+            else n.snapshots
+        snapshots = net_snapshots[net_snapshots.isin(cf.index)]
         frames = {}
         for g in gens:
             if g in n.generators_t.p_max_pu.columns:
@@ -226,7 +254,11 @@ def build_cf_pmax_df(
             else:
                 frames[g] = pd.Series(n.generators.loc[g, "p_max_pu"], index=snapshots)
 
-        series[f"{label} | p_max_pu"] = pd.DataFrame(frames).mean(axis=1)
+        gen_df = pd.DataFrame(frames)
+        w = n.generators.loc[gens, "p_nom_opt"].clip(lower=0)
+        if w.sum() == 0:
+            w = n.generators.loc[gens, "p_nom"]
+        series[f"{label} | p_max_pu"] = gen_df.mul(w, axis=1).sum(axis=1) / w.sum()
 
     return pd.DataFrame(series)
 
