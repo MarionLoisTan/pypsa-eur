@@ -80,6 +80,23 @@ _SWT_COLOR = "crimson"
 # Backend-agnostic data helpers
 # ---------------------------------------------------------------------------
 
+def _resolve_date_range(
+    date_range: tuple[str, str] | None,
+    year: int,
+) -> tuple[str, str] | None:
+    """Expand MM-DD date strings to YYYY-MM-DD for the given year.
+
+    Returns None if date_range is None or already in YYYY-MM-DD format,
+    so callers can use ``_resolve_date_range(...) or fallback``.
+    """
+    if date_range is None:
+        return None
+    start, end = date_range
+    if len(start) == 5 and start[2] == "-":
+        return (f"{year}-{start}", f"{year}-{end}")
+    return None
+
+
 def _get_plant_row(plant_name: str, powerplants_df: pd.DataFrame) -> pd.Series:
     mask = powerplants_df["Name"] == plant_name
     if not mask.any():
