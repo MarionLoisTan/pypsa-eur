@@ -109,27 +109,26 @@ def compute_damage_profile(
     Compute hourly damage profile for a single plant.
 
     Returns an array of values in [0, 1] where:
-      1.0   = fully operable
-      0.0   = fully inoperable (shut down)
+      0.0   = no damage (fully operable)
+      1.0   = fully inoperable (shut down)
       (0,1) = partially derated
 
     Two-pass approach so that full shutdowns always override partial derating.
     """
     n = len(lake_temp_series)
-    damage = np.ones(n, dtype=float)
+    damage = np.zeros(n, dtype=float)
 
     # Pass 1: partial derating for DWT < T <= SWT
     for t in range(n):
         T = lake_temp_series[t]
         if dwt < T <= swt:
-            vuln = get_vulnerability(T - dwt)
-            damage[t] = 1.0 - vuln
+            damage[t] = get_vulnerability(T - dwt)
 
     # Pass 2: full shutdown for T > SWT (overrides partial derating)
     for t in range(n):
         if lake_temp_series[t] > swt:
             end = min(t + sp + 1, n)
-            damage[t:end] = 0.0
+            damage[t:end] = 1.0
 
     return damage
 

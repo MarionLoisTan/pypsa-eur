@@ -27,10 +27,10 @@ def apply_damage_profiles(n, damage_config, snakemake_input, phase):
     For each technology with damage enabled in damage_config:
       - Loads the profile from snakemake_input.damage_{tech}
       - Resamples to match the network's snapshot resolution if needed
-      - For conventional generators (nuclear): multiplies the static p_max_pu
-        scalar by the damage factor so the country-level availability is preserved
-      - For renewable generators (onwind, offwind-*): multiplies the existing
-        time-varying profile by the damage factor
+      - For conventional generators (nuclear): broadcasts the static p_max_pu
+        scalar then subtracts the damage fraction, clipped to [0, 1]
+      - For renewable generators (onwind, offwind-*): subtracts the damage
+        fraction from the existing time-varying profile, clipped to [0, 1]
 
     Parameters
     ----------
@@ -66,7 +66,6 @@ def apply_damage_profiles(n, damage_config, snakemake_input, phase):
 
         profile = (
             xr.open_dataset(getattr(snakemake_input, input_key))["profile"]
-            .squeeze(drop=True)
             .to_pandas()
         )
 
@@ -87,8 +86,8 @@ def apply_damage_profiles(n, damage_config, snakemake_input, phase):
             continue
 
         # Get current p_max_pu per generator:
-        #   - time-varying column exists → renewable (multiply existing series)
-        #   - only static scalar exists  → conventional, e.g. nuclear (broadcast then multiply)
+        #   - time-varying column exists → renewable (subtract from existing series)
+        #   - only static scalar exists  → conventional, e.g. nuclear (broadcast then subtract)
         if gens.index[0] in n.generators_t.p_max_pu.columns:
             current = n.generators_t.p_max_pu[gens.index]
         else:
@@ -97,13 +96,15 @@ def apply_damage_profiles(n, damage_config, snakemake_input, phase):
                 {g: static[g] for g in gens.index}, index=profile.index
             )
 
-        # Map bus-level damage profile → per-generator (handles shared buses)
+        # Map bus-level damage profile → per-generator (handles shared buses).
+        # Profile values are damage fractions [0, 1] where 0 = no damage, 1 = fully damaged.
+        # Subtract damage from current p_max_pu and clip to [0, 1].
         gen_damage = pd.DataFrame(
             {gen: profile[bus] for gen, bus in gens["bus"].items()},
             index=profile.index,
         )
 
-        n.generators_t.p_max_pu[gens.index] = current.multiply(gen_damage)
+        n.generators_t.p_max_pu[gens.index] = (current - gen_damage).clip(lower=0, upper=1)
         logger.info(f"Applied {tech} damage profile to {len(gens)} generators.")
 
 

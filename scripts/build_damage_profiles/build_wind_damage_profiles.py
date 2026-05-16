@@ -68,7 +68,7 @@ def compute_wind_damage(V_p: xr.DataArray) -> xr.DataArray:
             0.0002 * V_e ** 2 - 0.0031 * V_e - 0.0494,
         ),
     )
-    return F_D
+    return F_D.clip(min=0)
 
 
 def aggregate_to_buses(
@@ -119,6 +119,7 @@ if __name__ == "__main__":
     carrier = snakemake.wildcards.carrier
     clusters = snakemake.wildcards.clusters
     turbine = snakemake.params.turbine
+    sustain_hours = snakemake.params.sustain_hours
 
     snap_cfg = snakemake.params.snapshots
     drop_leap = snakemake.params.drop_leap_day
@@ -160,13 +161,22 @@ if __name__ == "__main__":
     logger.info("Computed F_D grid, aggregating to bus level...")
 
     F_D_bus = aggregate_to_buses(F_D_grid, CF_mean, area, availability)
-    operational_profile = 1.0 - F_D_bus
+
+    # Each damage event persists for sustain_hours. The cumulative damage at
+    # time T is the sum of F_D over the preceding sustain_hours window,
+    # clipped to [0, 1] so the operational profile stays non-negative.
+    damage_profile = (
+        F_D_bus
+        .rolling(time=sustain_hours, min_periods=1)
+        .sum()
+        .clip(0, 1)
+    )
 
     out_path = Path(snakemake.output.profile)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     profile_da = xr.DataArray(
-        operational_profile.values,
+        damage_profile.values,
         dims=["time", "bus"],
         coords={"time": snapshot_index, "bus": availability.coords["bus"].values},
     )

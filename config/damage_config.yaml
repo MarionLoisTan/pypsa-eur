@@ -27,3 +27,6 @@ nuclear:
   shutdown_water_temp: 303  # K — shutdown water temperature threshold (30°C + 273)
   design_water_temp: 293  # K — design water temperature (20°C + 273)
   shutdown_period: 24    # hours — shutdown period
+
+wind:
+  sustain_hours: 72  # hours — each gust damage event persists for this long (3 days)
