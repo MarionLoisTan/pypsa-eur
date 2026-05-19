@@ -149,6 +149,7 @@ rule build_nuclear_damage_profile:
         swt=_DMG_CFG["nuclear"]["shutdown_water_temp"],
         dwt=_DMG_CFG["nuclear"]["design_water_temp"],
         sp=_DMG_CFG["nuclear"]["shutdown_period"],
+        c=_DMG_CFG["nuclear"]["vulnerability_compression"],
         snapshots=config_provider("snapshots"),
         drop_leap_day=config_provider("enable", "drop_leap_day"),
     input:
@@ -185,6 +186,7 @@ rule build_nuclear_plant_damage_profile:
         swt=_DMG_CFG["nuclear"]["shutdown_water_temp"],
         dwt=_DMG_CFG["nuclear"]["design_water_temp"],
         sp=_DMG_CFG["nuclear"]["shutdown_period"],
+        c=_DMG_CFG["nuclear"]["vulnerability_compression"],
         snapshots=config_provider("snapshots"),
         drop_leap_day=config_provider("enable", "drop_leap_day"),
     input:

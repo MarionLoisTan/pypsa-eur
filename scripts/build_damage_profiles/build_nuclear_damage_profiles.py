@@ -3,17 +3,31 @@ Build time-varying damage profiles for active nuclear power plants based on
 lake surface temperature from an atlite cutout.
 
 Damage logic (per timestep, per plant):
-  - lake_temp <= DWT              : no damage  (profile = 1.0)
+  - lake_temp <= DWT              : no damage  (profile = 0.0)
   - DWT < lake_temp <= SWT        : partial derating via vulnerability table
-                                    profile = 1 - vulnerability(round(lake_temp - DWT))
+                                    profile = vulnerability(round((lake_temp - DWT) * C))
   - lake_temp > SWT               : full shutdown for current + next SP timesteps
-                                    profile = 0.0  (overrides partial derating)
+                                    profile = 1.0  (overrides partial derating)
+
+Vulnerability table compression (parameter C):
+  The vulnerability lookup uses an effective threshold:
+      thresh_eff = round((lake_temp - DWT) * C)
+  This is DWT-anchored: zero damage at DWT is preserved regardless of C.
+  C = 1.0  → original table (thresh_eff = degrees above DWT)
+  C > 1 → (lake_temp - DWT) * C means the same vulnerability is reached at a lower lake_temp, i.e. more aggressive derating
+  C = (17 / (SWT - DWT)) → the full range of vulnerability (0 to 1) is compressed into the interval between DWT and SWT
+
+  Keep in mind that this compression factor is used to scale the damage based on historical observations
+  Compressing to the full range between DWT and SWT may not be sensible as the vulnerability factors and the Shutdown feature
+  are two different damage mechanisms. The vulnerability factors reflect more the thermal inefficiencies of higher inlet water temperatures,
+  where as the shutdown feature is based on environmental regulations.
 
 Parameters
 ----------
-SWT : K  — shutdown water temperature threshold (from damage_config.yaml)
-DWT : K  — design water temperature (from damage_config.yaml)
+SWT : K     — shutdown water temperature threshold (from damage_config.yaml)
+DWT : K     — design water temperature (from damage_config.yaml)
 SP  : hours — shutdown period (from damage_config.yaml)
+C   : float — vulnerability compression factor (from damage_config.yaml)
 
 Snakemake inputs
 ----------------
@@ -63,9 +77,12 @@ def _load_vulnerability_table():
 VULNERABILITY = _load_vulnerability_table()
 
 
-def get_vulnerability(degrees_above_dwt: float) -> float:
-    """Map degrees above DWT to fraction-inoperable vulnerability (0–1)."""
-    threshold = min(17, max(0, round(degrees_above_dwt)))
+def get_vulnerability(degrees_above_dwt: float, c: float = 1.0) -> float:
+    """Map degrees above DWT to fraction-inoperable vulnerability (0–1).
+
+    c scales the threshold before lookup (DWT-anchored): thresh_eff = round(degrees_above_dwt * c).
+    """
+    threshold = min(17, max(0, round(degrees_above_dwt * c)))
     return VULNERABILITY[threshold]
 
 
@@ -104,6 +121,7 @@ def compute_damage_profile(
     swt: float,
     dwt: float,
     sp: int,
+    c: float = 1.0,
 ) -> np.ndarray:
     """
     Compute hourly damage profile for a single plant.
@@ -122,7 +140,7 @@ def compute_damage_profile(
     for t in range(n):
         T = lake_temp_series[t]
         if dwt < T <= swt:
-            damage[t] = get_vulnerability(T - dwt)
+            damage[t] = get_vulnerability(T - dwt, c=c)
 
     # Pass 2: full shutdown for T > SWT (overrides partial derating)
     for t in range(n):
@@ -153,7 +171,8 @@ if __name__ == "__main__":
 
     swt = snakemake.params.swt
     dwt = snakemake.params.dwt
-    sp = snakemake.params.sp
+    sp  = snakemake.params.sp
+    c   = snakemake.params.c
 
     snap_cfg = snakemake.params.snapshots
     drop_leap = snakemake.params.drop_leap_day
@@ -206,7 +225,7 @@ if __name__ == "__main__":
             cutout_data, plant["lat"], plant["lon"], snapshot_index
         )
         plant_profiles[plant["Name"]] = compute_damage_profile(
-            lake_temp, swt=swt, dwt=dwt, sp=sp
+            lake_temp, swt=swt, dwt=dwt, sp=sp, c=c
         )
 
     plant_df = pd.DataFrame(plant_profiles, index=snapshot_index)
