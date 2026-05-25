@@ -150,6 +150,7 @@ rule build_nuclear_damage_profile:
         dwt=_DMG_CFG["nuclear"]["design_water_temp"],
         sp=_DMG_CFG["nuclear"]["shutdown_period"],
         c=_DMG_CFG["nuclear"]["vulnerability_compression"],
+        binary_shutdown=_DMG_CFG["nuclear"]["binary_shutdown"],
         snapshots=config_provider("snapshots"),
         drop_leap_day=config_provider("enable", "drop_leap_day"),
     input:
@@ -187,6 +188,7 @@ rule build_nuclear_plant_damage_profile:
         dwt=_DMG_CFG["nuclear"]["design_water_temp"],
         sp=_DMG_CFG["nuclear"]["shutdown_period"],
         c=_DMG_CFG["nuclear"]["vulnerability_compression"],
+        binary_shutdown=_DMG_CFG["nuclear"]["binary_shutdown"],
         snapshots=config_provider("snapshots"),
         drop_leap_day=config_provider("enable", "drop_leap_day"),
     input:
@@ -249,6 +251,7 @@ rule build_wind_damage_profile:
         snapshots=config_provider("snapshots"),
         drop_leap_day=config_provider("enable", "drop_leap_day"),
         sustain_hours=_DMG_CFG.get("wind", {}).get("sustain_hours", 72),
+        gust_multiplier=_DMG_CFG.get("wind", {}).get("gust_multiplier", 1.2),
     input:
         cutout=lambda w: input_cutout(
             w,

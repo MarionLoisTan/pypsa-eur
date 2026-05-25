@@ -45,11 +45,11 @@ _PYPSA_ROOT = _SCRIPT_DIR.parent.parent
 logger = logging.getLogger(__name__)
 
 
-def compute_wind_damage(V_p: xr.DataArray) -> xr.DataArray:
+def compute_wind_damage(V_p: xr.DataArray, gust_multiplier: float = 1.2) -> xr.DataArray:
     """
     Compute wind damage fraction F_D from 10 m wind gust speed V_p (m/s).
 
-    Converts gust at 10 m height to 90 m height, V_e = V_p * 1.2, then applies
+    Converts gust at 10 m height to hub height, V_e = V_p * gust_multiplier, then applies
     equation 2.3.1. Works on any shape xarray DataArray.
 
     Returns
@@ -58,7 +58,7 @@ def compute_wind_damage(V_p: xr.DataArray) -> xr.DataArray:
         Damage fraction in [0, 1] with the same shape and coordinates as V_p.
         0 = no damage, 1 = fully damaged.
     """
-    V_e = V_p * 1.2
+    V_e = V_p * gust_multiplier
     F_D = xr.where(
         V_e <= 25,
         0.0,
@@ -120,6 +120,7 @@ if __name__ == "__main__":
     clusters = snakemake.wildcards.clusters
     turbine = snakemake.params.turbine
     sustain_hours = snakemake.params.sustain_hours
+    gust_multiplier = snakemake.params.gust_multiplier
 
     snap_cfg = snakemake.params.snapshots
     drop_leap = snakemake.params.drop_leap_day
@@ -157,7 +158,7 @@ if __name__ == "__main__":
 
     availability = xr.open_dataarray(snakemake.input.availability)
 
-    F_D_grid = compute_wind_damage(V_p)
+    F_D_grid = compute_wind_damage(V_p, gust_multiplier=gust_multiplier)
     logger.info("Computed F_D grid, aggregating to bus level...")
 
     F_D_bus = aggregate_to_buses(F_D_grid, CF_mean, area, availability)

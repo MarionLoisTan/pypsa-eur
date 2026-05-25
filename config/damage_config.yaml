@@ -27,7 +27,9 @@ nuclear:
   shutdown_water_temp: 301  # K — shutdown water temperature threshold (28°C + 273)
   design_water_temp: 293  # K — design water temperature (20°C + 273)
   shutdown_period: 24    # hours — shutdown period
-  vulnerability_compression: 1.5  # DWT-anchored threshold scaling: thresh_eff = round(thresh * c); c=1 = original table
+  vulnerability_compression: 2.13  # DWT-anchored threshold scaling: thresh_eff = round(thresh * c); c=1 = original table
+  binary_shutdown: true           # true = hard step at SWT; false = gradual ramp via water_temperature_regulations.csv
 
 wind:
-  sustain_hours: 72  # hours — each gust damage event persists for this long (3 days)
+  sustain_hours: 72    # hours — each gust damage event persists for this long (3 days)
+  gust_multiplier: 1.2 # scaling factor from 10 m gust speed to hub-height extreme wind speed

@@ -4,30 +4,36 @@ lake surface temperature from an atlite cutout.
 
 Damage logic (per timestep, per plant):
   - lake_temp <= DWT              : no damage  (profile = 0.0)
-  - DWT < lake_temp <= SWT        : partial derating via vulnerability table
-                                    profile = vulnerability(round((lake_temp - DWT) * C))
+  - DWT < lake_temp <= SWT        : damage = max(vulnerability, regulation)
+      vulnerability: profile = interp((lake_temp - DWT) * C, vulnerability_table)
+      regulation:    profile = interp(SWT - lake_temp, regulation_table)
+                     (0.0 at 5°C below SWT, rising steeply to 1.0 at SWT)
   - lake_temp > SWT               : full shutdown for current + next SP timesteps
-                                    profile = 1.0  (overrides partial derating)
+                                    profile = 1.0  (overrides both mechanisms)
+
+  When binary_shutdown=True (legacy mode), the regulation table is not applied and
+  the model reverts to a hard 0/1 step at SWT.
 
 Vulnerability table compression (parameter C):
   The vulnerability lookup uses an effective threshold:
-      thresh_eff = round((lake_temp - DWT) * C)
+      thresh_eff = (lake_temp - DWT) * C
   This is DWT-anchored: zero damage at DWT is preserved regardless of C.
   C = 1.0  → original table (thresh_eff = degrees above DWT)
-  C > 1 → (lake_temp - DWT) * C means the same vulnerability is reached at a lower lake_temp, i.e. more aggressive derating
-  C = (17 / (SWT - DWT)) → the full range of vulnerability (0 to 1) is compressed into the interval between DWT and SWT
+  C > 1.0  → same vulnerability reached at lower lake_temp (more aggressive derating)
+  C = (17 / (SWT - DWT)) → full vulnerability range compressed into DWT→SWT interval
 
-  Keep in mind that this compression factor is used to scale the damage based on historical observations
-  Compressing to the full range between DWT and SWT may not be sensible as the vulnerability factors and the Shutdown feature
-  are two different damage mechanisms. The vulnerability factors reflect more the thermal inefficiencies of higher inlet water temperatures,
-  where as the shutdown feature is based on environmental regulations.
+Regulatory discharge limit (water_temperature_regulations.csv):
+  Maps degrees below SWT to fraction inoperable due to regulatory discharge constraints.
+  Applies in the 5°C window below SWT; reaches 1.0 at SWT, 0.0 at 5°C below.
+  Disabled when binary_shutdown=True.
 
 Parameters
 ----------
-SWT : K     — shutdown water temperature threshold (from damage_config.yaml)
-DWT : K     — design water temperature (from damage_config.yaml)
-SP  : hours — shutdown period (from damage_config.yaml)
-C   : float — vulnerability compression factor (from damage_config.yaml)
+SWT            : K     — shutdown water temperature threshold (from damage_config.yaml)
+DWT            : K     — design water temperature (from damage_config.yaml)
+SP             : hours — shutdown period (from damage_config.yaml)
+C              : float — vulnerability compression factor (from damage_config.yaml)
+binary_shutdown: bool  — if True, use legacy hard step at SWT; if False, use regulation ramp
 
 Snakemake inputs
 ----------------
@@ -77,13 +83,26 @@ def _load_vulnerability_table():
 VULNERABILITY = _load_vulnerability_table()
 
 
-def get_vulnerability(degrees_above_dwt: float, c: float = 1.0) -> float:
-    """Map degrees above DWT to fraction-inoperable vulnerability (0–1).
+def _load_regulation_table():
+    csv_path = _SCRIPT_DIR / "water_temperature_regulations.csv"
+    df = pd.read_csv(csv_path)
+    return dict(zip(df["threshold"].astype(int), df["regulation"]))
 
-    c scales the threshold before lookup (DWT-anchored): thresh_eff = round(degrees_above_dwt * c).
+
+REGULATION = _load_regulation_table()
+
+
+def get_vulnerability(degrees_above_dwt: float, c: float = 1.0) -> float:
+    threshold = min(17.0, max(0.0, degrees_above_dwt * c))
+    return float(np.interp(threshold, list(VULNERABILITY.keys()), list(VULNERABILITY.values())))
+
+
+def get_regulation(degrees_below_swt: float) -> float:
+    """Map degrees below SWT to fraction inoperable (0-1) from regulatory discharge limit table.
+    Clamps to [0, 5]; returns 1.0 at or above SWT, 0.0 at 5+ degrees below SWT.
     """
-    threshold = min(17, max(0, round(degrees_above_dwt * c)))
-    return VULNERABILITY[threshold]
+    threshold = min(5.0, max(0.0, degrees_below_swt))
+    return float(np.interp(threshold, list(REGULATION.keys()), list(REGULATION.values())))
 
 
 # ---------------------------------------------------------------------------
@@ -122,6 +141,7 @@ def compute_damage_profile(
     dwt: float,
     sp: int,
     c: float = 1.0,
+    binary_shutdown: bool = True,
 ) -> np.ndarray:
     """
     Compute hourly damage profile for a single plant.
@@ -132,17 +152,24 @@ def compute_damage_profile(
       (0,1) = partially derated
 
     Two-pass approach so that full shutdowns always override partial derating.
+    When binary_shutdown=False, applies regulatory discharge derating in the 5°C
+    window below SWT and takes the max with vulnerability derating.
     """
     n = len(lake_temp_series)
     damage = np.zeros(n, dtype=float)
 
-    # Pass 1: partial derating for DWT < T <= SWT
+    # Pass 1: derating for T > DWT
     for t in range(n):
         T = lake_temp_series[t]
-        if dwt < T <= swt:
-            damage[t] = get_vulnerability(T - dwt, c=c)
+        if T > dwt:
+            vuln = get_vulnerability(T - dwt, c=c)
+            if binary_shutdown:
+                damage[t] = vuln
+            else:
+                reg = get_regulation(swt - T)
+                damage[t] = max(vuln, reg)
 
-    # Pass 2: full shutdown for T > SWT (overrides partial derating)
+    # Pass 2: SP persistence — full shutdown for sp hours after any T > SWT
     for t in range(n):
         if lake_temp_series[t] > swt:
             end = min(t + sp + 1, n)
@@ -169,10 +196,11 @@ if __name__ == "__main__":
     except Exception:
         logging.basicConfig(level=logging.INFO)
 
-    swt = snakemake.params.swt
-    dwt = snakemake.params.dwt
-    sp  = snakemake.params.sp
-    c   = snakemake.params.c
+    swt             = snakemake.params.swt
+    dwt             = snakemake.params.dwt
+    sp              = snakemake.params.sp
+    c               = snakemake.params.c
+    binary_shutdown = snakemake.params.binary_shutdown
 
     snap_cfg = snakemake.params.snapshots
     drop_leap = snakemake.params.drop_leap_day
@@ -225,7 +253,7 @@ if __name__ == "__main__":
             cutout_data, plant["lat"], plant["lon"], snapshot_index
         )
         plant_profiles[plant["Name"]] = compute_damage_profile(
-            lake_temp, swt=swt, dwt=dwt, sp=sp, c=c
+            lake_temp, swt=swt, dwt=dwt, sp=sp, c=c, binary_shutdown=binary_shutdown
         )
 
     plant_df = pd.DataFrame(plant_profiles, index=snapshot_index)
