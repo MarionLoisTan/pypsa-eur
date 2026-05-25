@@ -1034,6 +1034,12 @@ def load_cutout(
         cutout = atlite.Cutout(cutout_files)
     elif isinstance(cutout_files, list):
         cutout_da = [atlite.Cutout(c).data for c in cutout_files]
+
+        # Align to common spatial extent
+        x_common = cutout_da[0].x
+        y_common = cutout_da[0].y
+        cutout_da = [da.sel(x=x_common, y=y_common) for da in cutout_da]
+
         combined_data = xr.concat(cutout_da, dim="time", data_vars="minimal")
         cutout = atlite.Cutout(NamedTemporaryFile().name, data=combined_data)
 
