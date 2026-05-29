@@ -11,8 +11,7 @@ Damage logic (eq. 2.3.1, Ren. Energy 2012, doi:10.1016/j.renene.2012.01.012):
   F_D = 1                    if V_e >= 75 m/s
 
 F_D is a damage fraction (0 = undamaged, 1 = fully damaged). The output
-profile saved to NetCDF is the operational fraction: 1 - F_D, matching
-the format used by the nuclear damage profiles and _apply.py.
+profile saved to NetCDF is F_D, matching the format used by the nuclear damage profiles and _apply.py.
 
 Snakemake wildcards
 -------------------
