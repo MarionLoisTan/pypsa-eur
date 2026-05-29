@@ -7,11 +7,11 @@ tutorial: true
 
 run:
   name: "all"
-  prefix: "2022-FR"
+  prefix: "2022-BE"
 
   scenarios:
     enable: true
-    file: "config/scen.weather_years+dmg_nucl.yaml"
+    file: "config/scen.weather_years+dmg_win.yaml"
   disable_progressbar: true
   shared_resources:
     policy: false
@@ -29,7 +29,7 @@ scenario:
   - ''
   planning_horizons: []
 
-countries: ['FR']
+countries: ['BE']
 
 electricity:
 

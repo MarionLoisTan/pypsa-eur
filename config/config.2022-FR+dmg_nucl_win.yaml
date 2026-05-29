@@ -11,7 +11,7 @@ run:
 
   scenarios:
     enable: true
-    file: "config/scen.2022+dmg_nucl.yaml"
+    file: "config/scen.weather_years+dmg_nucl_win.yaml"
   disable_progressbar: true
   shared_resources:
     policy: false
