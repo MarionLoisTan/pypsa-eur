@@ -28,9 +28,9 @@ def apply_damage_profiles(n, damage_config, snakemake_input, phase):
       - Loads the profile from snakemake_input.damage_{tech}
       - Resamples to match the network's snapshot resolution if needed
       - For conventional generators (nuclear): broadcasts the static p_max_pu
-        scalar then subtracts the damage fraction, clipped to [0, 1]
-      - For renewable generators (onwind, offwind-*): subtracts the damage
-        fraction from the existing time-varying profile, clipped to [0, 1]
+        scalar then multiplies by (1 - damage fraction)
+      - For renewable generators (onwind, offwind-*): multiplies the existing
+        time-varying profile by (1 - damage fraction)
 
     Parameters
     ----------
@@ -98,13 +98,13 @@ def apply_damage_profiles(n, damage_config, snakemake_input, phase):
 
         # Map bus-level damage profile → per-generator (handles shared buses).
         # Profile values are damage fractions [0, 1] where 0 = no damage, 1 = fully damaged.
-        # Subtract damage from current p_max_pu and clip to [0, 1].
+        # Invert to availability fraction and multiply against current p_max_pu.
         gen_damage = pd.DataFrame(
             {gen: profile[bus] for gen, bus in gens["bus"].items()},
             index=profile.index,
         )
 
-        n.generators_t.p_max_pu[gens.index] = (current - gen_damage).clip(lower=0, upper=1)
+        n.generators_t.p_max_pu[gens.index] = current * (1 - gen_damage)
         logger.info(f"Applied {tech} damage profile to {len(gens)} generators.")
 
 
