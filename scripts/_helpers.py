@@ -1040,7 +1040,7 @@ def load_cutout(
         y_common = cutout_da[0].y
         cutout_da = [da.sel(x=x_common, y=y_common) for da in cutout_da]
 
-        combined_data = xr.concat(cutout_da, dim="time", data_vars="minimal")
+        combined_data = xr.concat(cutout_da, dim="time", data_vars="minimal", coords="minimal", compat="override")
         cutout = atlite.Cutout(NamedTemporaryFile().name, data=combined_data)
 
     if time is not None:
