@@ -93,6 +93,20 @@ REGULATION = _load_regulation_table()
 
 
 def get_vulnerability(degrees_above_dwt: float, c: float = 1.0) -> float:
+    """
+    Interpolate vulnerability fraction from the lookup table.
+
+    The effective threshold is compressed by factor c before lookup:
+        thresh_eff = degrees_above_dwt * c
+    Clamped to [0, 17]; values outside this range return 0.0 or 1.0 respectively.
+
+    Parameters
+    ----------
+    degrees_above_dwt : temperature above DWT (K or °C above design water temp)
+    c                 : compression factor — scales the effective threshold.
+                        c=1.0 uses the raw table; c>1.0 reaches higher vulnerability
+                        at lower temperatures.
+    """
     threshold = min(17.0, max(0.0, degrees_above_dwt * c))
     return float(np.interp(threshold, list(VULNERABILITY.keys()), list(VULNERABILITY.values())))
 
