@@ -122,7 +122,7 @@ def get_regulation(degrees_below_swt: float) -> float:
 # ---------------------------------------------------------------------------
 # Plant loading
 # ---------------------------------------------------------------------------
-def load_nuclear_plants(powerplants_csv: Path, dateout_cutoff: int = 2023) -> pd.DataFrame:
+def load_nuclear_plants(powerplants_csv: Path, dateout_cutoff: int = 2017) -> pd.DataFrame:
     """Return nuclear plants with DateOut > cutoff (still operating)."""
     df = pd.read_csv(powerplants_csv, index_col=0)
     mask = (df["Fueltype"] == "Nuclear") & (df["DateOut"] > dateout_cutoff)
