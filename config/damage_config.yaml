@@ -31,5 +31,15 @@ nuclear:
   binary_shutdown: true           # true = hard step at SWT; false = gradual ramp via water_temperature_regulations.csv
 
 wind:
-  sustain_hours: 72    # hours — each gust damage event persists for this long (3 days)
-  gust_multiplier: 1.2 # scaling factor from 10 m gust speed to hub-height extreme wind speed
+  onwind:
+    sustain_hours: 24    # hours — each gust damage event persists for this long (3 days)
+    gust_multiplier: 1.2 # scaling factor from 10 m gust speed to hub-height extreme wind speed
+  offwind-ac:
+    sustain_hours: 72
+    gust_multiplier: 1.2
+  offwind-dc:
+    sustain_hours: 72
+    gust_multiplier: 1.2
+  offwind-float:
+    sustain_hours: 72
+    gust_multiplier: 1.2

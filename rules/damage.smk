@@ -250,8 +250,8 @@ rule build_wind_damage_profile:
         turbine=lambda w: config["renewable"][w.carrier]["resource"]["turbine"],
         snapshots=config_provider("snapshots"),
         drop_leap_day=config_provider("enable", "drop_leap_day"),
-        sustain_hours=_DMG_CFG.get("wind", {}).get("sustain_hours", 72),
-        gust_multiplier=_DMG_CFG.get("wind", {}).get("gust_multiplier", 1.2),
+        sustain_hours=lambda w: _DMG_CFG.get("wind", {}).get(w.carrier, {}).get("sustain_hours", 72),
+        gust_multiplier=lambda w: _DMG_CFG.get("wind", {}).get(w.carrier, {}).get("gust_multiplier", 1.2),
     input:
         cutout=lambda w: input_cutout(
             w,
