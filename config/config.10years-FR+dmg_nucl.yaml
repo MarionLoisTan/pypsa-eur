@@ -7,11 +7,11 @@ tutorial: true
 
 run:
   name: "all"
-  prefix: "2021-GB"
+  prefix: "10years-FR"
 
   scenarios:
     enable: true
-    file: "config/scen.2021+dmg_win.yaml"
+    file: "config/scen.weather_years+dmg_nucl.yaml"
   disable_progressbar: true
   shared_resources:
     policy: false
@@ -29,21 +29,21 @@ scenario:
   - ''
   planning_horizons: []
 
-countries: ['GB']
+countries: ['FR']
 
 electricity:
 
   extendable_carriers:
-    Generator: [OCGT, solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+    Generator: [OCGT, solar, solar-hsat, onwind, offwind-ac, offwind-dc]
     StorageUnit: [battery]
     Store: [H2]
     Link: [H2 pipeline]
 
-  renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]
   co2limit_enable: true
   co2limit: 0
 
-  powerplants_filter: "(DateOut >= 2017 or DateOut != DateOut) and not (Country == 'Germany' and Fueltype == 'Nuclear')"
+  powerplants_filter: "(DateOut >= 2020 or DateOut != DateOut) and not (Country == 'Germany' and Fueltype == 'Nuclear')"
   transmission_limit: v1.0
 
 data: # added section due to forked repo, see issue #2016 in repo
@@ -52,7 +52,7 @@ data: # added section due to forked repo, see issue #2016 in repo
     version: unknown
 
 atlite:
-  default_cutout: europe-2021-era5_fg10_lmlt
+  default_cutout: europe-2022-era5_fg10_lmlt
 
 
 renewable:
