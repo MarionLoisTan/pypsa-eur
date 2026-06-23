@@ -34,12 +34,12 @@ countries: ['GB']
 electricity:
 
   extendable_carriers:
-    Generator: [OCGT, solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+    Generator: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]
     StorageUnit: [battery]
     Store: [H2]
     Link: [H2 pipeline]
 
-  renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]
   co2limit_enable: true
   co2limit: 0
 
@@ -70,6 +70,8 @@ clustering:
     resolution_sector: 3h
 
 solving:
+  options:
+    noisy_costs: false
   check_objective:
     enable: false
     expected_value: 6.96e+08

@@ -70,9 +70,7 @@ clustering:
     resolution_sector: 3h
 
 solving:
-  check_objective:
-    enable: false
-    expected_value: 6.96e+08
+    noisy_costs: false
 
 plotting:
   map:
