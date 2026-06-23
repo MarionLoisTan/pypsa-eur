@@ -70,7 +70,9 @@ clustering:
     resolution_sector: 3h
 
 solving:
+  options:
     noisy_costs: false
+    assign_all_duals: true
 
 plotting:
   map:
