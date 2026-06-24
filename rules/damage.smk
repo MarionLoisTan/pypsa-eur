@@ -66,9 +66,15 @@ if scenarios:
             for v in ((cfg or {}).get("damage") or {}).values()
         )
     ]
+    # Runs with no damage key at all (undamaged base scenarios).
+    _no_damage_runs = [
+        r for r, cfg in scenarios.items()
+        if not (cfg or {}).get("damage")
+    ]
 else:
     _damage_runs = {tech: [] for tech in _DAMAGE_PROFILE_PATTERNS}
     _dispatch_damage_runs = []
+    _no_damage_runs = []
 
 _wind_damage_runs = sorted(set(
     r
@@ -286,6 +292,23 @@ rule solve_all_damaged_dispatch:
         expand(
             RESULTS + "networks/base_s_{clusters}_elec_{opts}_damaged-dispatch.nc",
             run=_dispatch_damage_runs,
+            clusters=config["scenario"]["clusters"],
+            opts=config["scenario"]["opts"],
+        ),
+
+
+rule solve_all_base_dispatch:
+    """
+    Convenience target: run solve_operations_network for all scenarios
+    with no damage key (undamaged dispatch re-solve on the base network).
+
+    Usage:
+        snakemake solve_all_base_dispatch --configfile config/config.yaml -j4
+    """
+    input:
+        expand(
+            RESULTS + "networks/base_s_{clusters}_elec_{opts}_op.nc",
+            run=_no_damage_runs,
             clusters=config["scenario"]["clusters"],
             opts=config["scenario"]["opts"],
         ),
