@@ -34,12 +34,12 @@ countries: ['FR']
 electricity:
 
   extendable_carriers:
-    Generator: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]
-    StorageUnit: [battery]
+    Generator: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, ror, biomass]
+    StorageUnit: [battery, PHS, hydro]
     Store: [H2]
     Link: [H2 pipeline]
 
-  renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]
+  renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, hydro]
   co2limit_enable: true
   co2limit: 0
 
@@ -63,6 +63,9 @@ renewable:
   offwind-float:
     max_depth: false
     min_depth: false
+
+conventional:
+  unit_commitment: true
 
 clustering:
   temporal:
