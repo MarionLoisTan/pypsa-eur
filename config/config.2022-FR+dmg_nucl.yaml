@@ -34,7 +34,7 @@ countries: ['FR']
 electricity:
 
   extendable_carriers:
-    Generator: [OCGT, solar, solar-hsat, onwind, offwind-ac, offwind-dc]
+    Generator: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]
     StorageUnit: [battery]
     Store: [H2]
     Link: [H2 pipeline]
@@ -43,7 +43,7 @@ electricity:
   co2limit_enable: true
   co2limit: 0
 
-  powerplants_filter: "(DateOut >= 2020 or DateOut != DateOut) and not (Country == 'Germany' and Fueltype == 'Nuclear')"
+  powerplants_filter: "(DateOut >= 2017 or DateOut != DateOut) and not (Country == 'Germany' and Fueltype == 'Nuclear')"
   transmission_limit: v1.0
 
 data: # added section due to forked repo, see issue #2016 in repo

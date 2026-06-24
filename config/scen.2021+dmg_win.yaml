@@ -1,5 +1,5 @@
 
-weather_year_2021_win_cap:
+weather_year_2021_win_cap_LGLP:
   snapshots:
     start: "2021-06-01 00:00"
     end: "2022-05-31 23:00"
@@ -60,7 +60,7 @@ weather_year_2021_win_cap:
     offwind-dc: capacity
     offwind-float: capacity
 
-weather_year_2021_win_dis:
+weather_year_2021_win_dis_LGLP:
   snapshots:
     start: "2021-06-01 00:00"
     end: "2022-05-31 23:00"
