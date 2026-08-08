@@ -10,7 +10,11 @@ and solve_operations_network_damaged_sector): when snakemake.params.damage is se
 damage profiles are applied and load shedding generators are added before solving.
 """
 
+import importlib
 import logging
+import os
+import sys
+from functools import partial
 
 import numpy as np
 import pypsa
@@ -87,6 +91,15 @@ if __name__ == "__main__":
         log_fn=snakemake.log.solver,
         mode=mode,
     )
+
+    if getattr(snakemake.params, "custom_extra_functionality", None):
+        source_path = snakemake.params.custom_extra_functionality
+        assert os.path.exists(source_path), f"{source_path} does not exist"
+        sys.path.append(os.path.dirname(source_path))
+        module_name = os.path.splitext(os.path.basename(source_path))[0]
+        module = importlib.import_module(module_name)
+        custom_fn = getattr(module, module_name)
+        model_kwargs["extra_functionality"] = partial(custom_fn, snakemake=snakemake)
 
     logging_frequency = snakemake.config.get("solving", {}).get(
         "mem_logging_frequency", 30
