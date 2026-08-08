@@ -45,11 +45,6 @@ electricity:
   powerplants_filter: "(DateOut >= 2017 or DateOut != DateOut) and not (Country == 'Germany' and Fueltype == 'Nuclear')"
   transmission_limit: v1.0
 
-  estimate_renewable_capacities:
-    enable: true
-    from_gem: true
-    year: 2022
-    expansion_limit: 2.5
 
 custom:
   biomass_max_energy_mwh: 10e6
