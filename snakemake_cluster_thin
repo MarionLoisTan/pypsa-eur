@@ -1,1 +1,1 @@
-snakemake --rerun-incomplete --latency-wait 100 --executor cluster-generic --cluster-generic-submit-cmd "sbatch --parsable -p fatq -n 1 --exclusive --output=slurm_logs/slurm-%j.out --time=18:00:00 --cpus-per-task=32" "$@"
+snakemake --rerun-incomplete --latency-wait 100 --executor cluster-generic --cluster-generic-submit-cmd "sbatch --parsable -p fatq,rome,gpuq,workq -n 1 --exclusive --output=slurm_logs/slurm-%j.out --time=18:00:00 --cpus-per-task=32" "$@"
