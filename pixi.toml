@@ -103,6 +103,7 @@ pandera = ">=0.28.1"
 natsort = ">=8.4.0"
 snakemake-logger-plugin-pypsa = ">=0.1.0"
 cdsapi = ">=0.7.7,<0.8"
+ipykernel = ">=7.3.0"
 
 [target.unix.dependencies]
 snakemake-executor-plugin-slurm = ">=1.9.2"
