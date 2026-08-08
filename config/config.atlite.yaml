@@ -189,8 +189,8 @@ atlite:
       'y':
       - 33.0
       - 72.0
-      dx: 0.3
-      dy: 0.3
+      dx: 0.25
+      dy: 0.25
       time:
       - '2024'
       - '2024'
@@ -203,8 +203,6 @@ atlite:
         - runoff
         - wind
         - influx
-        - roughness
-        - soil temperature
         - wind_gust
         - lake_s_temperature
         monthly_requests: true

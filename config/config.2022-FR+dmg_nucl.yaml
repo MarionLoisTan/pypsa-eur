@@ -32,19 +32,37 @@ scenario:
 countries: ['FR']
 
 electricity:
-
   extendable_carriers:
-    Generator: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]
+    Generator: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, biomass]
     StorageUnit: [battery]
     Store: [H2]
     Link: [H2 pipeline]
 
-  renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]
+  renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, hydro]
   co2limit_enable: true
   co2limit: 0
 
   powerplants_filter: "(DateOut >= 2017 or DateOut != DateOut) and not (Country == 'Germany' and Fueltype == 'Nuclear')"
   transmission_limit: v1.0
+
+  estimate_renewable_capacities:
+    enable: true
+    from_gem: true
+    year: 2022
+    # expansion_limit: 2
+
+custom:
+  biomass_max_cap_mw: 3000
+  solar_max_cap_mw: 80000      
+  onwind_max_cap_mw: 45000      
+  offwind_max_cap_mw: 18000     
+  nuclear_p_min_pu: 0.3
+  marginal_cost_overrides:
+    offwind-ac: 0.016
+    offwind-dc: 0.019
+
+load:
+  scaling_factor: 1.25
 
 data: # added section due to forked repo, see issue #2016 in repo
   cutout:
@@ -71,11 +89,8 @@ clustering:
 
 solving:
   options:
-    noisy_costs: false
-    assign_all_duals: true
-  check_objective:
-    enable: false
-    expected_value: 6.96e+08
+    noisy_costs: true
+    # assign_all_duals: true
 
 plotting:
   map:

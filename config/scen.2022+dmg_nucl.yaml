@@ -52,8 +52,6 @@ weather_year_2022_nuc_cap:
       cutout:
       - europe-2022-era5_fg10_lmlt
       - europe-2023-era5_fg10_lmlt
-  electricity:
-    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]
   damage:
     nuclear: capacity
 
@@ -110,8 +108,6 @@ weather_year_2022_nuc_dis:
       cutout:
       - europe-2022-era5_fg10_lmlt
       - europe-2023-era5_fg10_lmlt
-  electricity:
-    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]
   damage:
     nuclear: dispatch
 
@@ -168,5 +164,3 @@ weather_year_2022_nuc_base:
       cutout:
       - europe-2022-era5_fg10_lmlt
       - europe-2023-era5_fg10_lmlt
-  electricity:
-    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]

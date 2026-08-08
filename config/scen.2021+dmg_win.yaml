@@ -52,8 +52,7 @@ weather_year_2021_win_cap_LGLP:
       cutout:
       - europe-2021-era5_fg10_lmlt
       - europe-2022-era5_fg10_lmlt
-  electricity:
-    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+ 
   damage:
     onwind: capacity
     offwind-ac: capacity
@@ -113,8 +112,7 @@ weather_year_2021_win_dis_LGLP:
       cutout:
       - europe-2021-era5_fg10_lmlt
       - europe-2022-era5_fg10_lmlt
-  electricity:
-    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  
   damage:
     onwind: dispatch
     offwind-ac: dispatch
@@ -174,5 +172,4 @@ weather_year_2021_win_base_LGLP:
       cutout:
       - europe-2021-era5_fg10_lmlt
       - europe-2022-era5_fg10_lmlt
-  electricity:
-    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+  

@@ -32,10 +32,9 @@ scenario:
 countries: ['FR']
 
 electricity:
-
   extendable_carriers:
     Generator: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, ror, biomass]
-    StorageUnit: [battery, PHS, hydro]
+    StorageUnit: [battery]
     Store: [H2]
     Link: [H2 pipeline]
 
@@ -46,6 +45,18 @@ electricity:
   powerplants_filter: "(DateOut >= 2017 or DateOut != DateOut) and not (Country == 'Germany' and Fueltype == 'Nuclear')"
   transmission_limit: v1.0
 
+  estimate_renewable_capacities:
+    enable: true
+    from_gem: true
+    year: 2022
+    expansion_limit: 2.5
+
+custom:
+  biomass_max_energy_mwh: 10e6
+
+load:
+  scaling_factor: 1.25
+  
 data: # added section due to forked repo, see issue #2016 in repo
   cutout:
     source: build 
