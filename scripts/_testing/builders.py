@@ -178,7 +178,7 @@ def build_cf_sources(
                 continue
             pivot = sub.pivot_table(index=sub.index, columns="unit_name", values="capacity_factor")
             caps = sub.groupby("unit_name")["installed_capacity_mw"].first()
-            wide_rows[plant] = pivot.mul(caps).sum(axis=1) / pivot.notna().mul(caps).sum(axis=1)
+            wide_rows[plant] = pivot.mul(caps).sum(axis=1) / caps.sum()
         if wide_rows:
             sources["Actual CF"] = pd.DataFrame(wide_rows)
     return sources
@@ -265,7 +265,7 @@ def build_plant_cf_df(
                 if not cf_u.empty:
                     pivot = cf_u.pivot_table(index=cf_u.index, columns="unit_name", values="capacity_factor")
                     caps = cf_u.groupby("unit_name")["installed_capacity_mw"].first()
-                    cf_agg = pivot.mul(caps).sum(axis=1) / pivot.notna().mul(caps).sum(axis=1)
+                    cf_agg = pivot.mul(caps).sum(axis=1) / caps.sum()
                     out[f"Actual CF{suffix}"] = cf_agg.reindex(full_idx)
         if dmg_df is not None and plant_name in dmg_df.columns:
             dmg = (cf_fixed_factor - dmg_df.loc[start:end, plant_name]).reindex(full_idx)
@@ -523,7 +523,7 @@ def build_p_max_pu_df(
             gen_df = pd.DataFrame(frames)
 
             def _weighted(df_slice, gen_names):
-                w = n.generators.loc[gen_names, "p_nom_opt"].clip(lower=0)
+                w = n.generators.loc[gen_names, "p_nom_opt"].fillna(0).clip(lower=0)
                 if w.sum() == 0:
                     w = n.generators.loc[gen_names, "p_nom"]
                 return df_slice.mul(w, axis=1).sum(axis=1) / w.sum()
@@ -611,7 +611,7 @@ def build_cf_pmax_df(
                 frames[g] = pd.Series(n.generators.loc[g, "p_max_pu"], index=snapshots)
 
         gen_df = pd.DataFrame(frames)
-        w = n.generators.loc[gens, "p_nom_opt"].clip(lower=0)
+        w = n.generators.loc[gens, "p_nom_opt"].fillna(0).clip(lower=0)
         if w.sum() == 0:
             w = n.generators.loc[gens, "p_nom"]
         series[f"{label} | p_max_pu"] = gen_df.mul(w, axis=1).sum(axis=1) / w.sum()
@@ -667,7 +667,7 @@ def build_agg_cf_pmax_df(
             warnings.warn(f"No {carrier} generators for label={label}, bus={bus} — skipping.")
             continue
 
-        w = n.generators.loc[gens, "p_nom_opt"].clip(lower=0)
+        w = n.generators.loc[gens, "p_nom_opt"].fillna(0).clip(lower=0)
         if w.sum() == 0:
             w = n.generators.loc[gens, "p_nom"]
 

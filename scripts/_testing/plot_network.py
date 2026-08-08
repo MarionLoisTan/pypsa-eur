@@ -186,15 +186,14 @@ def plot_cf_pmax(
 
     tickvals, ticktext = _compute_day_ticks(data.index)
     ax.set_xticks(tickvals)
-    ax.set_xticklabels(ticktext, rotation=30, ha="right", fontsize=8)
+    ax.set_xticklabels(ticktext, rotation=90, ha="center", fontsize=8)
     ax.xaxis.set_minor_locator(plt.matplotlib.dates.HourLocator(byhour=[6, 12, 18]))
 
     ax.set_ylim(0, 1)
     ax.grid(True, which="major", axis="both", alpha=0.3, linestyle="--", linewidth=0.5)
     ax.set_ylabel("p.u.")
-    ax.set_xlabel("snapshot")
     if title is not None:
-        ax.set_title(title)
+        print(title)
     ax.legend(loc="upper right", fontsize=8, framealpha=0.8)
     fig.tight_layout()
     return fig, ax
@@ -336,13 +335,13 @@ def plot_agg_cf_pmax(
 
     tick_lbls = _tick_labels(data.index, freq)
     ax.set_xticks(x)
-    ax.set_xticklabels(tick_lbls, rotation=30, ha="right", fontsize=8)
+    ax.set_xticklabels(tick_lbls, rotation=30, ha="right")
     ax.set_ylim(0, 1)
     ax.grid(True, axis="y", alpha=0.3, linestyle="--", linewidth=0.5)
     ax.set_ylabel("p.u.")
     if title is not None:
-        ax.set_title(title)
-    ax.legend(loc="upper right", fontsize=8, framealpha=0.8)
+        print(title)
+    ax.legend(loc="upper right", framealpha=0.8)
     fig.tight_layout()
     return fig, ax
 

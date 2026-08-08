@@ -18,6 +18,7 @@ mpl.rcParams.update({
     "axes.labelsize":  14,
     "xtick.labelsize": 12,
     "ytick.labelsize": 12,
+    "legend.fontsize": 12,
 })
 
 from scripts.build_damage_profiles.build_nuclear_damage_profiles import load_damage_config

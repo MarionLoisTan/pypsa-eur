@@ -8,6 +8,7 @@ Public API
 iplot_cf_comparison   interactive Plotly time-series (build_plant_cf_df → here)
 plot_cf_comparison    Matplotlib time-series
 iplot_cf_temp         interactive scatter of CF vs lake temp (build_cf_temp_aligned_df → here)
+plot_cf_temp          Matplotlib scatter of CF vs lake temp
 """
 
 import matplotlib.pyplot as plt
@@ -172,6 +173,56 @@ def plot_cf_comparison(
 # ---------------------------------------------------------------------------
 # CF vs temperature scatter
 # ---------------------------------------------------------------------------
+
+def plot_cf_temp(
+    data: pd.DataFrame,
+    *,
+    title: str | None = None,
+    figsize: tuple = (6, 5),
+    ax: plt.Axes | None = None,
+) -> tuple[plt.Figure, plt.Axes]:
+    """Matplotlib scatter of CF vs lake surface temperature.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Output of ``build_cf_temp_aligned_df``.
+        Columns: ``plant``, ``label``, ``temp``, ``cf``.
+    title : str or None
+    figsize : tuple
+    ax : plt.Axes or None
+
+    Returns
+    -------
+    fig, ax
+    """
+    _MPL_SCATTER_COLORS  = {"Actual CF": "steelblue", "Damage-adjusted CF": "tomato"}
+    _MPL_SCATTER_MARKERS = {"Actual CF": "o", "Damage-adjusted CF": "x"}
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+    else:
+        fig = ax.get_figure()
+
+    multi_plant = data["plant"].nunique() > 1
+
+    for (plant, label), group in data.groupby(["plant", "label"]):
+        source_type = label.split(" – ")[-1] if " – " in label else label
+        color  = _MPL_SCATTER_COLORS.get(source_type, "grey")
+        marker = _MPL_SCATTER_MARKERS.get(source_type, "o")
+        name   = label if not multi_plant else f"{plant} — {label}"
+        ax.scatter(group["temp"] - 273.15, group["cf"],
+                   color=color, marker=marker, s=8, alpha=0.5, label=name)
+
+    ax.set_xlabel("Lake surface temperature (°C)")
+    ax.set_ylabel("Capacity factor")
+    ax.set_ylim(0, 1.05)
+    if title is not None:
+        ax.set_title(title)
+    ax.legend(loc="upper right", fontsize=8, markerscale=1.5)
+    fig.tight_layout()
+    return fig, ax
+
 
 def iplot_cf_temp(
     data: pd.DataFrame,

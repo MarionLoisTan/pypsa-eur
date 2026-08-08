@@ -303,20 +303,21 @@ def _make_dual_axis_fig(figsize: tuple = (12, 4)):
     return fig, ax1, ax2
 
 
-def _apply_mpl_layout(ax1, ax2, title: str | None, time_index: pd.DatetimeIndex) -> None:
+def _apply_mpl_layout(ax1, ax2, title: str | None, time_index: pd.DatetimeIndex,
+                      ax1_color: str | None = None) -> None:
     tickvals, ticktext = _compute_day_ticks(time_index)
     ax1.set_xticks(tickvals)
-    ax1.set_xticklabels(ticktext, rotation=30, ha="right", fontsize=8)
+    ax1.set_xticklabels(ticktext, rotation=90, ha="center", fontsize=8)
     ax1.xaxis.set_minor_locator(mdates.HourLocator(interval=6))
     ax1.tick_params(axis="x", which="minor", length=3)
     ax1.set_xlabel("Time")
-    ax1.set_ylabel("Availability (0 = shutdown, 1 = full capacity)")
+    _ax1_color = ax1_color or _DAMAGE_SINGLE_COLOR
+    ax1.set_ylabel("% Operational Capacity", color=_ax1_color)
+    ax1.tick_params(axis="y", colors=_ax1_color)
     ax1.set_ylim(-0.05, 1.05)
     ax1.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
-    ax2.set_ylabel("Lake surface temperature (°C)")
-    if title is not None:
-        ax1.set_title(title)
-    ax1.figure.tight_layout()
+    ax2.set_ylabel("Lake surface temperature (°C)", color=_TEMP_LINE_COLOR)
+    ax2.tick_params(axis="y", colors=_TEMP_LINE_COLOR)
 
 
 def _add_threshold_lines(ax2) -> None:
@@ -333,7 +334,12 @@ def _add_threshold_lines(ax2) -> None:
 def _combine_legends(ax1, ax2) -> None:
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc="lower left", fontsize=8, framealpha=0.8)
+    all_lines, all_labels = lines1 + lines2, labels1 + labels2
+    ax1.legend(all_lines, all_labels,
+               loc="upper center", bbox_to_anchor=(0.5, -0.35),
+               ncol=len(all_lines), fontsize=8, frameon=False)
+    ax1.figure.tight_layout()
+    ax1.figure.subplots_adjust(bottom=0.22)
 
 
 # ===========================================================================
@@ -345,6 +351,7 @@ def plot_plant_profile(
     *,
     title: str | None = None,
     figsize: tuple = (12, 4),
+    show_thresholds: bool = True,
 ) -> tuple:
     """
     Dual y-axis Matplotlib plot for a single nuclear plant.
@@ -371,7 +378,8 @@ def plot_plant_profile(
         time_index, data["temp_c"].values,
         color=_TEMP_LINE_COLOR, linewidth=1.2, alpha=0.8, label="Lake temp", zorder=2,
     )
-    _add_threshold_lines(ax2)
+    if show_thresholds:
+        _add_threshold_lines(ax2)
     _apply_mpl_layout(ax1, ax2, title=title or "Nuclear availability with Water Temperature", time_index=time_index)
     _combine_legends(ax1, ax2)
     return fig, (ax1, ax2)
@@ -408,7 +416,7 @@ def plot_bus_profile(
     if is_aggregate:
         ax1.plot(
             time_index, data["availability"].values,
-            color=_DAMAGE_SINGLE_COLOR, linewidth=2.0, label="availability (cap-weighted)", zorder=4,
+            color=_DAMAGE_SINGLE_COLOR, linewidth=2.0, label=f"Capacity weighted {title or 'bus'}", zorder=4,
         )
     else:
         plant_cols = [c for c in data.columns if c not in temp_cols]
@@ -426,7 +434,9 @@ def plot_bus_profile(
     )
     _add_threshold_lines(ax2)
 
-    _apply_mpl_layout(ax1, ax2, title=title or "Nuclear availability with Water Temperature", time_index=time_index)
+    ax1_color = _DAMAGE_SINGLE_COLOR
+    _apply_mpl_layout(ax1, ax2, title=title or "Nuclear availability with Water Temperature",
+                      time_index=time_index, ax1_color=ax1_color)
     _combine_legends(ax1, ax2)
     return fig, (ax1, ax2)
 

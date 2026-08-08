@@ -8,13 +8,13 @@
 if "snakemake" in globals():
     filename = snakemake.output[0]
 else:
-    filename = "scen.weather_years+nucl_win_dmg.yaml"
+    filename = "scen.weather_years+dmg_nucl.yaml"
     # filename = "scen.summer_years+dmg.yaml"
 
 # --- Configuration -----------------------------------------------------------
 CUTOUT_TEMPLATE = "europe-{year}-era5_fg10_lmlt"
-first_year = 2022
-last_year = 2022  # last scenario spans last_year → last_year+1
+first_year = 2014
+last_year = 2023  # last scenario spans last_year → last_year+1
 
 SUMMER_MODE = False  # True: Jun–Aug snapshots; False: Jun–May (full year)
 
@@ -23,8 +23,8 @@ SUMMER_MODE = False  # True: Jun–Aug snapshots; False: Jun–May (full year)
 DAMAGE_CONFIGS = {
     "nuc_cap": {"nuclear": "capacity"},
     "nuc_dis": {"nuclear": "dispatch"},
-    "win_cap": {"onwind": "capacity", "offwind-ac": "capacity", "offwind-dc": "capacity", "offwind-float": "capacity"},
-    "win_dis": {"onwind": "dispatch", "offwind-ac": "dispatch", "offwind-dc": "dispatch", "offwind-float": "dispatch"},
+    # "win_cap": {"onwind": "capacity", "offwind-ac": "capacity", "offwind-dc": "capacity", "offwind-float": "capacity"},
+    # "win_dis": {"onwind": "dispatch", "offwind-ac": "dispatch", "offwind-dc": "dispatch", "offwind-float": "dispatch"},
     # examples of further combinations:
     # "onwind_cap": {"onwind": "capacity"},
     # "nuc_cap_onwind_cap": {"nuclear": "capacity", "onwind": "capacity"},
@@ -97,7 +97,7 @@ weather_year_{year}_{suffix}:
       - {cutout_a}
       - {cutout_b}
   electricity:
-    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]
 {damage_block}
 """
 
@@ -134,7 +134,7 @@ weather_year_{year}_{suffix}:
     dynamic_line_rating:
       cutout: {cutout_a}
   electricity:
-    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, offwind-float]
+    renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc]
 {damage_block}
 """
 
