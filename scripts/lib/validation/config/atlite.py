@@ -60,12 +60,12 @@ class _CutoutConfig(ConfigModel):
     )
     dx: float | None = Field(
         None,
-        gt=0.25,
+        ge=0.25,
         description="Grid resolution [°] for longitude. Must be larger than 0.25°.",
     )
     dy: float | None = Field(
         None,
-        gt=0.25,
+        ge=0.25,
         description="Grid resolution [°] for latitude. Must be larger than 0.25°.",
     )
     time: list[str] | None = Field(
