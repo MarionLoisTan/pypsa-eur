@@ -31,7 +31,7 @@ _nuclear_cfg: dict = {}
 def _ensure_nuclear_cfg() -> None:
     if not _nuclear_cfg:
         cfg = load_damage_config()["nuclear"]
-        dwt = cfg["design_water_temp"]
+        dwt = cfg["desired_water_temp"]
         swt = cfg["shutdown_water_temp"]
         _nuclear_cfg.update(
             _DWT=dwt,

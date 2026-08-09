@@ -48,7 +48,27 @@ Damage can be applied at two phases, controlled per-technology in the scenario c
 
 ## Configuration
 
-Damage parameters are stored in `config/damage_config.yaml`. Scenario-level damage is enabled per-technology in the scenarios YAML under a `damage:` key, e.g.:
+### `config/damage_config.yaml`
+
+Global damage parameters shared across all runs. Key fields:
+
+| Field | Description |
+|-------|-------------|
+| `cutout_dir` | Path to the directory containing atlite cutouts |
+| `cutout_names` | Optional list of cutout names to process; omit to process all `.nc` files in `cutout_dir` |
+| `features` | ERA5 features to embed in the damage cutout (e.g. `wind_gust`, `lake_s_temperature`) |
+| `feature_shortcodes` | ERA5 GRIB shortcodes used to name output files (e.g. `fg10`, `lmlt`) |
+| `nuclear.shutdown_water_temp` | Water temperature threshold (K) above which a plant shuts down |
+| `nuclear.desired_water_temp` | Desired water temperature (K) used as the baseline for vulnerability calculations |
+| `nuclear.shutdown_period` | Duration (hours) a plant remains offline after a shutdown event |
+| `nuclear.vulnerability_compression` | Scaling factor applied to vulnerability table thresholds |
+| `nuclear.binary_shutdown` | If `true`, hard step shutdown at `shutdown_water_temp`; if `false`, gradual ramp via regulations table |
+| `wind.{carrier}.sustain_hours` | Duration (hours) a wind damage event persists after a gust exceedance |
+| `wind.{carrier}.gust_h_multiplier` | Scaling factor from 10 m gust speed to hub-height extreme wind speed |
+
+### Scenario damage config
+
+Scenario-level damage is enabled per-technology in the scenarios YAML under a `damage:` key, e.g.:
 
 ```yaml
 damage:

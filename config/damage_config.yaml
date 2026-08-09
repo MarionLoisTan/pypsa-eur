@@ -25,7 +25,7 @@ feature_shortcodes:        # ERA5 GRIB shortcode for each feature — used to na
 
 nuclear:
   shutdown_water_temp: 301  # K — shutdown water temperature threshold (28°C + 273)
-  design_water_temp: 293  # K — design water temperature (20°C + 273)
+  desired_water_temp: 293  # K — desired water temperature (20°C + 273)
   shutdown_period: 24    # hours — shutdown period
   vulnerability_compression: 2.13  # DWT-anchored threshold scaling: thresh_eff = round(thresh * c); c=1 = original table
   binary_shutdown: true           # true = hard step at SWT; false = gradual ramp via water_temperature_regulations.csv
@@ -33,13 +33,13 @@ nuclear:
 wind:
   onwind:
     sustain_hours: 14    # hours — each gust damage event persists for this long 
-    gust_multiplier: 1 # scaling factor from 10 m gust speed to hub-height extreme wind speed
+    gust_h_multiplier: 1 # scaling factor from 10 m gust speed to hub-height extreme wind speed
   offwind-ac:
     sustain_hours: 36
-    gust_multiplier: 1
+    gust_h_multiplier: 1
   offwind-dc:
     sustain_hours: 36
-    gust_multiplier: 1
+    gust_h_multiplier: 1
   offwind-float:
     sustain_hours: 36
-    gust_multiplier: 1
+    gust_h_multiplier: 1

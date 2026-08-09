@@ -76,6 +76,7 @@ d1gam3xoknrgr2.cloudfront.net/
 *.geojson
 
 *.ipynb
+!/scripts/_testing/*.ipynb
 
 merger-todos.md
 
