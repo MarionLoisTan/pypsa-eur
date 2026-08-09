@@ -1,11 +1,11 @@
 # PyPSA-Eur — Extreme Weather Damage/Impacts on Nuclear and Wind
 
-This repository is a fork of [PyPSA-Eur](https://github.com/PyPSA/pypsa-eur) extended with a weather-damage modelling framework. The extension adds time-varying technology damage profiles derived from ERA5 weather data and applies them to PyPSA networks during capacity planning and/or dispatch re-optimisation.
+This repository is a fork of [PyPSA-Eur](https://github.com/PyPSA/pypsa-eur) extended with a weather-damage modelling feature. The extension adds time-varying technology damage profiles derived from ERA5 weather data and applies them to PyPSA generator components during capacity planning and/or dispatch optimisation.
 
 Two damage mechanisms are currently implemented:
 
-- **Nuclear - water temperature damage** — derating and shutdown of nuclear generators driven by river/lake surface temperatures exceeding cooling efficiency and shutdown thresholds
-- **Wind - extreme wind speeds damage** — derating of wind generators (onshore and offshore) driven by extreme 10 m wind gust speeds
+- **Nuclear - water temperature damage** — derating and shutdown of nuclear generators driven by river/lake surface temperatures exceeding thresholds for cooling efficiency and discharge
+- **Wind - extreme wind speeds damage** — derating or shutdown of wind generators (onshore and offshore) driven by extreme 10 m wind gust speeds
 
 ---
 
@@ -16,7 +16,7 @@ All damage-related scripts live in `scripts/build_damage_profiles/`.
 | Script | Purpose |
 |--------|---------|
 | `build_damage_cutout_smk.py` | Snakemake wrapper: copies an existing atlite cutout and prepares additional ERA5 features required for damage calculations (`lake_s_temp`, `wnd_gust10m`) |
-| `build_nuclear_damage_profiles.py` | Builds hourly nuclear damage profiles at bus level. Uses lake surface temperature and a vulnerability and discahrge regulations table from [Luo et al., 2023](https://www.nature.com/articles/s43247-023-00782-w). Outputs `profile` (time × bus, values ∈ [0,1]) and per-plant diagnostics |
+| `build_nuclear_damage_profiles.py` | Builds hourly nuclear damage profiles at bus level. Uses lake surface temperature and a vulnerability and discahrge regulations table from [Luo et al.](https://www.nature.com/articles/s43247-023-00782-w). Outputs `profile` (time × bus, values ∈ [0,1]) and per-plant diagnostics |
 | `build_wind_damage_profiles.py` | Builds hourly wind damage profiles at bus level. Uses 10 m wind gust speed and layout-weighted spatial aggregation consistent with `build_renewable_profiles.py`. Implements the damage fraction function from [Hong and Möller](https://www.sciencedirect.com/science/article/pii/S0960148112000213) |
 | `_apply.py` | Shared utility called by `prepare_network.py` and `solve_operations_network.py`. Reads damage profiles from Snakemake input, resamples if needed, and multiplies into `n.generators_t.p_max_pu` |
 | `water_temperature_regulations.csv` | Lookup table: degrees below shutdown water temperature → inoperable fraction due to regulatory discharge constraints |
