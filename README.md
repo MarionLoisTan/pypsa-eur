@@ -1,4 +1,4 @@
-# PyPSA-Eur — Climate Damage Extension
+# PyPSA-Eur — Extreme Weather Damage/Impacts on Nuclear and Wind
 
 This repository is a fork of [PyPSA-Eur](https://github.com/PyPSA/pypsa-eur) extended with a weather-damage modelling framework. The extension adds time-varying technology damage profiles derived from ERA5 weather data and applies them to PyPSA networks during capacity planning and/or dispatch re-optimisation.
 
