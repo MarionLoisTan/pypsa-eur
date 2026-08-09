@@ -1,0 +1,96 @@
+# yaml-language-server: $schema=../schema.json
+# SPDX-FileCopyrightText: Contributors to PyPSA-Eur <https://github.com/pypsa/pypsa-eur>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+tutorial: true
+
+run:
+  name: "all"
+  prefix: "FR-summer_years+dmg"
+
+  scenarios:
+    enable: true
+    file: "config/scen.FR-summer_years+dmg_nucl.yaml"
+  disable_progressbar: true
+  shared_resources:
+    policy: false
+
+enable:
+  build_cutout: false
+  retrieve_cutout: true
+
+scenario:
+  clusters:
+  - 5
+  opts:
+  - ''
+  sector_opts:
+  - ''
+  planning_horizons: []
+
+countries: ['FR']
+
+electricity:
+  extendable_carriers:
+    Generator: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, ror, biomass]
+    StorageUnit: [battery]
+    Store: [H2]
+    Link: [H2 pipeline]
+
+  renewable_carriers: [solar, solar-hsat, onwind, offwind-ac, offwind-dc, hydro]
+  co2limit_enable: true
+  co2limit: 0
+
+  powerplants_filter: "(DateOut >= 2017 or DateOut != DateOut) and not (Country == 'Germany' and Fueltype == 'Nuclear')"
+  transmission_limit: v1.0
+
+
+custom:
+  biomass_max_energy_mwh: 10e6
+
+load:
+  scaling_factor: 1.25
+
+data:
+  cutout:
+    source: build
+    version: unknown
+
+atlite:
+  default_cutout: europe-2022-era5_fg10_lmlt
+
+
+renewable:
+  offwind-ac:
+    max_depth: false
+  offwind-dc:
+    max_depth: false
+  offwind-float:
+    max_depth: false
+    min_depth: false
+
+conventional:
+  unit_commitment: true
+
+clustering:
+  temporal:
+    resolution_elec: False
+    resolution_sector: 3h
+
+solving:
+  options:
+    noisy_costs: false
+    assign_all_duals: true
+
+plotting:
+  map:
+    boundaries:
+  eu_node_location:
+    x: -5.5
+    y: 46.
+  costs_max: 1000
+  costs_threshold: 0.0000001
+  energy_max:
+  energy_min:
+  energy_threshold: 0.000001
