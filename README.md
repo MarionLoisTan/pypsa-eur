@@ -1,115 +1,202 @@
-<!--
-SPDX-FileCopyrightText: Contributors to PyPSA-Eur <https://github.com/pypsa/pypsa-eur>
-SPDX-License-Identifier: CC-BY-4.0
--->
+# PyPSA-Eur — Climate Damage Extension
 
-![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/pypsa/pypsa-eur?include_prereleases)
-[![Test workflows](https://github.com/pypsa/pypsa-eur/actions/workflows/test.yaml/badge.svg)](https://github.com/pypsa/pypsa-eur/actions/workflows/test.yaml)
-[![Documentation](https://readthedocs.org/projects/pypsa-eur/badge/?version=latest)](https://pypsa-eur.readthedocs.io/en/latest/?badge=latest)
-![Size](https://img.shields.io/github/repo-size/pypsa/pypsa-eur)
-[![Zenodo PyPSA-Eur](https://zenodo.org/badge/DOI/10.5281/zenodo.3520874.svg)](https://doi.org/10.5281/zenodo.3520874)
-[![Zenodo PyPSA-Eur-Sec](https://zenodo.org/badge/DOI/10.5281/zenodo.3938042.svg)](https://doi.org/10.5281/zenodo.3938042)
-[![Snakemake](https://img.shields.io/badge/snakemake-≥9-brightgreen.svg?style=flat)](https://snakemake.readthedocs.io)
-[![Discord](https://img.shields.io/discord/911692131440148490?logo=discord)](https://discord.gg/AnuJBk23FU)
-[![REUSE status](https://api.reuse.software/badge/github.com/pypsa/pypsa-eur)](https://api.reuse.software/info/github.com/pypsa/pypsa-eur)
+This repository is a fork of [PyPSA-Eur](https://github.com/PyPSA/pypsa-eur) extended with a weather-damage modelling framework. The extension adds time-varying technology damage profiles derived from ERA5 weather data and applies them to PyPSA networks during capacity planning and/or dispatch re-optimisation.
 
-# PyPSA-Eur: A Sector-Coupled Open Optimisation Model of the European Energy System
+Two damage mechanisms are currently implemented:
 
-PyPSA-Eur is an open model dataset of the European energy system at the
-transmission network level that covers the full ENTSO-E area. The model is suitable both for operational studies and generation and transmission expansion planning studies.
-The continental scope and highly resolved spatial scale enables a proper description of the long-range
-smoothing effects for renewable power generation and their varying resource availability.
+- **Nuclear - water temperature damage** — derating and shutdown of nuclear generators driven by river/lake surface temperatures exceeding cooling efficiency and shutdown thresholds
+- **Wind - extreme wind speeds damage** — derating of wind generators (onshore and offshore) driven by extreme 10 m wind gust speeds
 
+---
 
+## New scripts
 
+All damage-related scripts live in `scripts/build_damage_profiles/`.
 
-The model is described in the [documentation](https://pypsa-eur.readthedocs.io)
-and in the paper
-[PyPSA-Eur: An Open Optimisation Model of the European Transmission
-System](https://arxiv.org/abs/1806.01613), 2018,
-[arXiv:1806.01613](https://arxiv.org/abs/1806.01613).
-The model building routines are defined through a snakemake workflow.
-Please see the [documentation](https://pypsa-eur.readthedocs.io/)
-for installation instructions and other useful information about the snakemake workflow.
-The model is designed to be imported into the open toolbox
-[PyPSA](https://github.com/PyPSA/PyPSA).
+| Script | Purpose |
+|--------|---------|
+| `build_damage_cutout_smk.py` | Snakemake wrapper: copies an existing atlite cutout and prepares additional ERA5 features required for damage calculations (`lake_s_temp`, `wnd_gust10m`) |
+| `build_nuclear_damage_profiles.py` | Builds hourly nuclear damage profiles at bus level. Uses lake surface temperature and a vulnerability and discahrge regulations table from [Luo et al., 2023](https://www.nature.com/articles/s43247-023-00782-w). Outputs `profile` (time × bus, values ∈ [0,1]) and per-plant diagnostics |
+| `build_wind_damage_profiles.py` | Builds hourly wind damage profiles at bus level. Uses 10 m wind gust speed and layout-weighted spatial aggregation consistent with `build_renewable_profiles.py`. Implements the damage fraction function from [Hong and Möller](https://www.sciencedirect.com/science/article/pii/S0960148112000213) |
+| `_apply.py` | Shared utility called by `prepare_network.py` and `solve_operations_network.py`. Reads damage profiles from Snakemake input, resamples if needed, and multiplies into `n.generators_t.p_max_pu` |
+| `water_temperature_regulations.csv` | Lookup table: degrees below shutdown water temperature → inoperable fraction due to regulatory discharge constraints |
+| `water_temperature_vulnerability.csv` | Lookup table: effective temperature above desired water temperature → vulnerability-based damage fraction |
 
-> [!NOTE]
-> PyPSA-Eur has many contributors, with the maintenance currently led by the [Department of Digital Transformation in
-> Energy Systems](https://tu.berlin/en/ensys) at the [Technical University of
-> Berlin](https://www.tu.berlin).
-> Previous versions were developed at the [Karlsruhe
-> Institute of Technology](http://www.kit.edu/english/index.php) funded by the
-> [Helmholtz Association](https://www.helmholtz.de/en/).
+### Snakemake rules (`rules/damage.smk`)
 
-> [!WARNING]
-> PyPSA-Eur is under active development and has several
-> [limitations](https://pypsa-eur.readthedocs.io/en/latest/limitations.html) which
-> you should understand before using the model. The github repository
-> [issues](https://github.com/PyPSA/pypsa-eur/issues) collect known topics we are
-> working on (please feel free to help or make suggestions). The
-> [documentation](https://pypsa-eur.readthedocs.io/) remains somewhat patchy. You
-> can find showcases of the model's capabilities in the Joule paper [The potential
-> role of a hydrogen network in
-> Europe](https://doi.org/10.1016/j.joule.2023.06.016), another [paper in Joule
-> with a description of the industry
-> sector](https://doi.org/10.1016/j.joule.2022.04.016), or in [a 2021 presentation
-> at EMP-E](https://nworbmot.org/energy/brown-empe.pdf). We do not recommend to
-> use the full resolution network model for simulations. At high granularity the
-> assignment of loads and generators to the nearest network node may not be a
-> correct assumption, depending on the topology of the underlying distribution
-> grid, and local grid bottlenecks may cause unrealistic load-shedding or
-> generator curtailment. We recommend to cluster the network to a couple of
-> hundred nodes to remove these local inconsistencies. See the discussion in
-> Section 3.4 "Model validation" of the paper.
+| Rule | Purpose |
+|------|---------|
+| `build_damage_cutout` | Prepare a feature-suffixed copy of a cutout |
+| `build_all_damage_cutouts` | Convenience target for all cutouts in `damage_config.yaml` |
+| `build_nuclear_damage_profile` | Bus-level nuclear damage profile for a given cluster count |
+| `build_nuclear_plant_damage_profile` | Per-plant diagnostic nuclear damage profile |
+| `build_all_nuclear_damage_profiles` | Convenience target across all cluster values |
+| `build_wind_damage_profile` | Bus-level wind damage profile for a given carrier and cluster count |
+| `build_all_wind_damage_profiles` | Convenience target for all wind carriers |
+| `solve_all_scenarios` | Solve capacity + dispatch for all scenarios in the scenarios file |
+| `solve_all_base_dispatch` | Dispatch re-solve for undamaged base scenarios only |
+| `solve_all_damaged_dispatch` | Dispatch re-solve for scenarios with dispatch-phase damage |
 
+### Damage application phases
 
-![PyPSA-Eur Grid Model](doc/img/elec.png)
+Damage can be applied at two phases, controlled per-technology in the scenario config:
 
-The dataset consists of:
+- `capacity` — applied in `prepare_network.py`; affects capacity optimisation
+- `dispatch` — applied in `solve_operations_network.py`; affects dispatch re-optimisation only
 
-- A grid model based on a modified [GridKit](https://github.com/bdw/GridKit)
-  extraction of the [ENTSO-E Transmission System
-  Map](https://www.entsoe.eu/data/map/). The grid model contains 7072 lines
-  (alternating current lines at and above 220kV voltage level and all high
-  voltage direct current lines) and 3803 substations.
-- The open power plant database
-  [powerplantmatching](https://github.com/PyPSA/powerplantmatching).
-- Electrical demand time series from the
-  [OPSD project](https://open-power-system-data.org/).
-- Renewable time series based on ERA5 and SARAH, assembled using the [atlite tool](https://github.com/PyPSA/atlite).
-- Geographical potentials for wind and solar generators based on land use (CORINE) and excluding nature reserves (Natura2000) are computed with the [atlite library](https://github.com/PyPSA/atlite).
+---
 
-A sector-coupled extension adds demand
-and supply for the following sectors: transport, space and water
-heating, biomass, industry and industrial feedstocks, agriculture,
-forestry and fishing. This completes the energy system and includes
-all greenhouse gas emitters except waste management and land use.
+## Configuration
 
-This diagram gives an overview of the sectors and the links between
-them:
+Damage parameters are stored in `config/damage_config.yaml`. Scenario-level damage is enabled per-technology in the scenarios YAML under a `damage:` key, e.g.:
 
-![sector diagram](doc/img/multisector_figure.png)
+```yaml
+damage:
+  nuclear: dispatch
+  onwind: capacity
+```
 
-Each of these sectors is built up on the transmission network nodes
-from [PyPSA-Eur](https://github.com/PyPSA/pypsa-eur):
+Available configs in this repository:
 
-![network diagram](https://github.com/PyPSA/pypsa-eur/blob/master/doc/img/base.png?raw=true)
+| Config file | Study |
+|-------------|-------|
+| `config/config.2021-GB+dmg_win.yaml` | GB 2021 — wind |
+| `config/config.2022-FR+dmg_nucl.yaml` | FR 2022 — nuclear |
+| `config/config.10years-FR+dmg_nucl.yaml` | FR multi-year — nuclear, for comparing with ENTSO-E outages|
 
-For computational reasons the model is usually clustered down
-to 50-200 nodes.
+---
 
-Already-built versions of the model can be found in the accompanying [Zenodo
-repository](https://doi.org/10.5281/zenodo.3601881).
+## Running on SOPHIA
 
-# Contributing and Support
-We strongly welcome anyone interested in contributing to this project. If you have any ideas, suggestions or encounter problems, feel invited to file issues or make pull requests on GitHub.
--   To **discuss** with other PyPSA users, organise projects, share news, and get in touch with the community you can use the [Discord server](https://discord.gg/AnuJBk23FU).
--   For **bugs and feature requests**, please use the [PyPSA-Eur Github Issues page](https://github.com/PyPSA/pypsa-eur/issues).
+Two cluster submission wrappers are available:
 
-# Licence
+| Wrapper | Partition(s) | CPUs | Use for |
+|---------|-------------|------|---------|
+| `snakemake_cluster_preparations` | `workq`, `rome`, `fatq` | `{threads}` (rule-defined) | Data preparation: cutout building, profile generation, `prepare_network` |
+| `snakemake_cluster_thin` | `fatq`, `rome`, `gpuq`, `workq` | 32 (exclusive node) | Network solving: `solve_network`, `solve_operations_network` |
 
-The code in PyPSA-Eur is released as free software under the
-[MIT License](https://opensource.org/licenses/MIT), see [`doc/licenses.rst`](doc/licenses.rst).
-However, different licenses and terms of use may apply to the various
-input data, see [`doc/data_sources.rst`](doc/data_sources.rst).
+> Remove the `-n` (dry-run) flag from any command below before submitting for real execution.
+
+---
+
+### Step 1 — Prepare networks (`snakemake_cluster_preparations`)
+
+Run `--until prepare_network` to build damage cutouts, damage profiles, and prepared networks before solving.
+
+**GB 2021 wind damage:**
+```bash
+./snakemake_cluster_preparations solve_all_base_dispatch \
+  --configfile config/config.2021-GB+dmg_win.yaml \
+  --until prepare_network \
+  --jobs 5 -n
+
+./snakemake_cluster_preparations solve_all_scenarios \
+  --configfile config/config.2021-GB+dmg_win.yaml \
+  --jobs 5 \
+  --until prepare_network \
+  --forcerun prepare_network \
+  -n
+```
+
+**FR 2022 nuclear damage:**
+```bash
+./snakemake_cluster_preparations solve_all_base_dispatch \
+  --configfile config/config.2022-FR+dmg_nucl.yaml \
+  --until prepare_network \
+  --jobs 5 -n
+
+./snakemake_cluster_preparations solve_all_scenarios \
+  --configfile config/config.2022-FR+dmg_nucl.yaml \
+  --jobs 5 \
+  --until prepare_network \
+  --forcerun prepare_network \
+  -n
+```
+
+**FR 10-year nuclear damage:**
+```bash
+./snakemake_cluster_preparations solve_all_base_dispatch \
+  --configfile config/config.10years-FR+dmg_nucl.yaml \
+  --until prepare_network \
+  --jobs 5 -n
+
+./snakemake_cluster_preparations solve_all_scenarios \
+  --configfile config/config.10years-FR+dmg_nucl.yaml \
+  --jobs 10 \
+  --until prepare_network \
+  -n
+```
+
+---
+
+### Step 2 — Solve networks (`snakemake_cluster_thin`)
+
+**GB 2021 wind damage:**
+```bash
+# Solve all scenarios
+./snakemake_cluster_thin solve_all_scenarios \
+  --configfile config/config.2021-GB+dmg_win.yaml \
+  --jobs 3 -n
+
+# Solve scenarios and base dispatch together
+./snakemake_cluster_thin solve_all_scenarios solve_all_base_dispatch \
+  --configfile config/config.2021-GB+dmg_win.yaml \
+  --jobs 3 -n
+
+# Force re-solve
+./snakemake_cluster_thin solve_all_scenarios solve_all_base_dispatch \
+  --configfile config/config.2021-GB+dmg_win.yaml \
+  --jobs 3 \
+  --forcerun solve_network \
+  -n
+
+# Single network target
+./snakemake_cluster_thin \
+  results/2021-GB/weather_year_2021_win_cap_LGLP/networks/base_s_5_elec__op.nc \
+  --configfile config/config.2021-GB+dmg_win.yaml \
+  --jobs 1 -n
+```
+
+**FR 2022 nuclear damage:**
+```bash
+# Solve all scenarios and base dispatch
+./snakemake_cluster_thin solve_all_scenarios solve_all_base_dispatch \
+  --configfile config/config.2022-FR+dmg_nucl.yaml \
+  --jobs 3 -n
+
+# Force re-solve
+./snakemake_cluster_thin solve_all_scenarios solve_all_base_dispatch \
+  --configfile config/config.2022-FR+dmg_nucl.yaml \
+  --jobs 3 \
+  --forcerun solve_network \
+  -n
+
+# Solve base dispatch only
+./snakemake_cluster_thin solve_all_base_dispatch \
+  --configfile config/config.2022-FR+dmg_nucl.yaml \
+  --jobs 3 -n
+
+# Single network target
+./snakemake_cluster_thin \
+  results/2022-FR/weather_year_2022_nuc_cap/networks/base_s_5_elec__op.nc \
+  --configfile config/config.2022-FR+dmg_nucl.yaml \
+  --jobs 1 -n
+```
+
+**FR 10-year nuclear damage:**
+```bash
+# Solve all scenarios and base dispatch
+./snakemake_cluster_thin solve_all_scenarios solve_all_base_dispatch \
+  --configfile config/config.10years-FR+dmg_nucl.yaml \
+  --jobs 3 -n
+
+# Solve all scenarios only
+./snakemake_cluster_thin solve_all_scenarios \
+  --configfile config/config.10years-FR+dmg_nucl.yaml \
+  --jobs 3 -n
+
+# Solve base dispatch only
+./snakemake_cluster_thin solve_all_base_dispatch \
+  --configfile config/config.10years-FR+dmg_nucl.yaml \
+  --jobs 5 -n
+```
